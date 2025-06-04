@@ -67,6 +67,9 @@ cde() {
             shift
             __mlnj_cde_cache "$@"
             ;;
+        "cache.clean")
+            __mlnj_cde_cache_clean
+            ;;
         "update")
             __mlnj_cde_update
             ;;
@@ -87,6 +90,7 @@ __mlnj_cde_help() {
     echo ""
     echo "Available commands:"
     echo "  cde cache [key] [value]  - Manage cached data"
+    echo "  cde cache.clean          - Clean all cached data"
     echo "  cde update               - Update CDE plugin"
     echo "  cde help                 - Show this help"
     echo ""
@@ -125,13 +129,13 @@ __mlnj_cde_update() {
 __mlnj_cde_cache() {
     if [[ $# -eq 0 ]]; then
         echo "📦 Cached items:"
-        skate list
+        skate list --db="__mlnj_cde"
         return
     fi
 
     if [[ $# -eq 1 ]]; then
         # Get value
-        local value=$(skate get "$1" 2>/dev/null)
+        local value=$(skate get --db="__mlnj_cde" "$1" 2>/dev/null)
         if [[ -n "$value" ]]; then
             gum style --foreground 86 "🔑 $1: $value"
         else
@@ -142,12 +146,38 @@ __mlnj_cde_cache() {
 
     if [[ $# -eq 2 ]]; then
         # Set value
-        skate set "$1" "$2"
+        skate set --db="__mlnj_cde" "$1" "$2"
         gum style --foreground 86 "✅ Cached: $1 = $2"
         return
     fi
 
     echo "Usage: cde cache [key] [value]"
+}
+
+# Clean all cache data
+__mlnj_cde_cache_clean() {
+    gum style --foreground 214 "🧹 Cleaning all CDE cache data..."
+    
+    # List current items for confirmation
+    local cache_items=$(skate list --db="__mlnj_cde" 2>/dev/null)
+    
+    if [[ -z "$cache_items" ]]; then
+        gum style --foreground 86 "✅ Cache is already empty"
+        return 0
+    fi
+    
+    echo "Current cached items:"
+    echo "$cache_items"
+    echo ""
+    
+    # Ask for confirmation
+    if gum confirm "Delete all cached data?"; then
+        # Delete the entire database
+        skate reset --db="__mlnj_cde"
+        gum style --foreground 86 "✅ All CDE cache data cleaned"
+    else
+        gum style --foreground 214 "⚠️  Cache cleaning cancelled"
+    fi
 }
 
 # Lazy loading alias for cde.p

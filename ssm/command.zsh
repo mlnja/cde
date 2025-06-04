@@ -95,10 +95,10 @@ __mlnj_cde_ssm_refresh() {
     # Cache the instances
     if [[ ${#instances[@]} -gt 0 ]]; then
         local cache_data=$(printf '%s\n' "${instances[@]}")
-        skate set "ssm_instances:${env_key}" "$cache_data"
+        skate set --db="__mlnj_cde" "ssm_instances:${env_key}" "$cache_data"
         gum style --foreground 86 "✅ Found and cached ${#instances[@]} instances"
     else
-        skate delete "ssm_instances:${env_key}" 2>/dev/null
+        skate delete --db="__mlnj_cde" "ssm_instances:${env_key}" 2>/dev/null
         gum style --foreground 214 "⚠️  No SSM instances found for this environment"
     fi
 }
@@ -111,7 +111,7 @@ __mlnj_cde_ssm_get_cached_instances() {
         return 1
     fi
     
-    local cached_data=$(skate get "ssm_instances:${env_key}" 2>/dev/null)
+    local cached_data=$(skate get --db="__mlnj_cde" "ssm_instances:${env_key}" 2>/dev/null)
     if [[ -n "$cached_data" ]]; then
         echo "$cached_data"
         return 0
