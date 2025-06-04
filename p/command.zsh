@@ -88,9 +88,9 @@ __mlnj_cde_profile_unified() {
         return 1
     fi
     
-    # Show unified selection
+    # Show unified selection with fuzzy filter
     gum style --foreground 86 "🌥️  Select Cloud Profile:"
-    local selected=$(printf '%s\n' "${all_profiles[@]}" | gum choose --height=15 --cursor="→ ")
+    local selected=$(printf '%s\n' "${all_profiles[@]}" | gum filter --placeholder="Type to filter profiles..." --height=15)
     
     if [[ -n "$selected" ]]; then
         # Parse selection (format: "icon provider:profile")

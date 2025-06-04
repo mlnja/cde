@@ -149,9 +149,9 @@ __mlnj_cde_ssm_connect() {
         [[ -n "$line" ]] && instances+=("$line")
     done <<< "$cached_instances"
     
-    # Show selection
+    # Show selection with fuzzy filter
     gum style --foreground 86 "🖥️  Select SSM Instance (${env_key}):"
-    local selected=$(printf '%s\n' "${instances[@]}" | gum choose --height=15 --cursor="→ ")
+    local selected=$(printf '%s\n' "${instances[@]}" | gum filter --placeholder="Type to filter instances..." --height=15)
     
     if [[ -n "$selected" ]]; then
         # Parse selection to get instance ID and provider
