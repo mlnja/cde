@@ -38,6 +38,20 @@ __mlnj_cde_load_p_command() {
     fi
 }
 
+# Lazy load ssm command when needed
+__mlnj_cde_load_ssm_command() {
+    local plugin_dir=$(__mlnj_cde_get_plugin_dir)
+    local ssm_command="$plugin_dir/ssm/command.zsh"
+    
+    if [[ -f "$ssm_command" ]]; then
+        source "$ssm_command"
+        return 0
+    else
+        gum style --foreground 196 "❌ SSM command not found"
+        return 1
+    fi
+}
+
 # Main CDE function
 cde() {
     if [[ $# -eq 0 ]]; then
@@ -78,6 +92,7 @@ __mlnj_cde_help() {
     echo ""
     echo "Standalone commands:"
     echo "  cde.p                    - Select cloud profile"
+    echo "  cde.ssm [refresh|show]   - Connect to cloud instances"
 }
 
 # Update function
@@ -142,4 +157,13 @@ cde.p() {
         __mlnj_cde_load_p_command || return 1
     fi
     _cde_profile "$@"
+}
+
+# Lazy loading alias for cde.ssm
+cde.ssm() {
+    # Lazy load ssm command if not already loaded
+    if ! declare -f _cde_ssm >/dev/null; then
+        __mlnj_cde_load_ssm_command || return 1
+    fi
+    _cde_ssm "$@"
 }
