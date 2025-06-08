@@ -65,6 +65,13 @@ __mlnj_cde_cr_login() {
 # Main CR command function (public interface)
 _cde_cr() {
     local subcommand="$1"
+    
+    if [[ -z "$subcommand" ]]; then
+        echo "Available commands:"
+        echo "  cde.cr login [region]  - Login to ECR Docker registry"
+        return 1
+    fi
+    
     shift
     
     case "$subcommand" in
