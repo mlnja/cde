@@ -45,7 +45,7 @@ _cde_show_tunnel_table() {
             local target_port=$(yq eval ".bastion_targets[] | select(.profile == \"$current_profile\" and .name == \"$target_name\") | .port" "$config_file")
             
             # Check if tmux session exists
-            local session_name="__mlnj_cde_tun_${target_name}"
+            local session_name="__mlnj_cde_tun_${current_profile}_${target_name}"
             local status_icon="❌"
             local status_text="Stopped"
             if tmux has-session -t "$session_name" 2>/dev/null; then
@@ -77,7 +77,7 @@ _cde_show_tunnel_table() {
     fi
     
     # Check if tunnel is already running
-    local session_name="__mlnj_cde_tun_${chosen_target}"
+    local session_name="__mlnj_cde_tun_${current_profile}_${chosen_target}"
     if tmux has-session -t "$session_name" 2>/dev/null; then
         _cde_manage_existing_tunnel "$chosen_target" "$session_name"
     else
@@ -144,7 +144,7 @@ _cde_start_new_tunnel() {
     gum style --foreground 214 "📡 $target_host:$remote_port -> localhost:$local_port"
     
     # Create tmux session name and log file
-    local session_name="__mlnj_cde_tun_${target_name}"
+    local session_name="__mlnj_cde_tun_${current_profile}_${target_name}"
     local log_file="/tmp/${session_name}.log"
     
     # Clean up any existing log file
