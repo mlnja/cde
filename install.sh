@@ -29,6 +29,15 @@ if ! command -v go >/dev/null 2>&1; then
     exit 1
 fi
 
+# Check if jq is installed
+if ! command -v jq >/dev/null 2>&1; then
+    echo "❌ jq is not installed. Please install jq first:"
+    echo "   macOS: brew install jq"
+    echo "   Ubuntu/Debian: sudo apt-get install jq"
+    echo "   CentOS/RHEL: sudo yum install jq"
+    exit 1
+fi
+
 # Clone or update the repository
 if [[ -d "$PLUGIN_DIR" ]]; then
     echo "📥 Updating existing CDE plugin..."
