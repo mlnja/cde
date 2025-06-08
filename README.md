@@ -5,7 +5,7 @@ Beautiful cloud utilities for your terminal with oh-my-zsh integration.
 ## Installation
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/username/cde/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/mlops-ninja/cde/main/install.sh | bash
 ```
 
 Then add `cde` to your plugins in `~/.zshrc`:
