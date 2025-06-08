@@ -47,11 +47,13 @@ _cde_show_tunnel_table() {
             # Check if tmux session exists
             local session_name="__mlnj_cde_tun_${target_name}"
             local status_icon="❌"
+            local status_text="Stopped"
             if tmux has-session -t "$session_name" 2>/dev/null; then
                 status_icon="✅"
+                status_text="Running"
             fi
             
-            display_lines+=("🚇 $target_name | $target_host:$target_port | $status_icon")
+            display_lines+=("$status_icon $status_text | 🚇 $target_name")
         fi
     done <<< "$(yq eval ".bastion_targets[] | select(.profile == \"$current_profile\") | .name" "$config_file" 2>/dev/null)"
     
@@ -68,7 +70,7 @@ _cde_show_tunnel_table() {
     fi
     
     # Extract target name from selected line
-    local chosen_target=$(echo "$selected" | cut -d'|' -f1 | sed 's/🚇 //' | xargs)
+    local chosen_target=$(echo "$selected" | cut -d'|' -f2 | sed 's/🚇 //' | xargs)
     
     if [[ -z "$chosen_target" ]]; then
         return 0
@@ -149,8 +151,8 @@ _cde_start_new_tunnel() {
     [[ -f "$log_file" ]] && rm "$log_file"
     
     # Start tunnel in detached tmux session with logging
-    tmux new-session -d -s "$session_name" \
-        "AWS_PROFILE='$current_profile' aws ssm start-session \
+    tmux new-session -d -s "$session_name" -e AWS_PROFILE="$current_profile" \
+        "aws ssm start-session \
         --target '$bastion_instance' \
         --document-name AWS-StartPortForwardingSessionToRemoteHost \
         --parameters 'host=\"$target_host\",portNumber=\"$remote_port\",localPortNumber=\"$local_port\"' \
