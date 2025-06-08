@@ -97,9 +97,9 @@ _cde_manage_existing_tunnel() {
         "View logs")
             local log_file="/tmp/${session_name}.log"
             if [[ -f "$log_file" ]]; then
-                gum style --foreground 86 "📋 Viewing logs for $target_name (Press Ctrl+C to exit)"
+                gum style --foreground 86 "📋 Viewing logs for $target_name (Press 'q' to exit)"
                 echo ""
-                tail -f "$log_file"
+                less +F "$log_file"
             else
                 gum style --foreground 214 "⚠️  Log file not found: $log_file"
             fi
