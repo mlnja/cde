@@ -54,12 +54,12 @@ _cde_show_tunnel_table() {
             
             # Check if tmux session exists
             local session_name="__mlnj_cde_tun_${target_name}"
-            local status="❌ Stopped"
+            local tunnel_status="❌ Stopped"
             if tmux has-session -t "$session_name" 2>/dev/null; then
-                status="✅ Running"
+                tunnel_status="✅ Running"
             fi
             
-            table_data+="${target_name}\t${target_host}:${target_port}\t${status}\n"
+            table_data+="${target_name}\t${target_host}:${target_port}\t${tunnel_status}\n"
         fi
     done <<< "$(yq eval ".bastion_targets[] | select(.profile == \"$current_profile\") | .name" "$config_file" 2>/dev/null)"
     
