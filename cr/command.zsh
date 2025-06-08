@@ -20,12 +20,12 @@ __mlnj_cde_cr_check_profile() {
 
 # Get AWS account ID and region from current AWS profile
 __mlnj_cde_cr_get_aws_account_info() {
-    gum style --foreground 214 "🔍 Getting AWS account information..."
+    gum style --foreground 214 "🔍 Getting AWS account information..." >&2
     
     # Get account ID
     local account_id=$(aws sts get-caller-identity --query Account --output text 2>/dev/null)
     if [[ -z "$account_id" || "$account_id" == "None" ]]; then
-        gum style --foreground 196 "❌ Failed to get AWS account ID. Check your AWS credentials."
+        gum style --foreground 196 "❌ Failed to get AWS account ID. Check your AWS credentials." >&2
         return 1
     fi
     
@@ -35,7 +35,7 @@ __mlnj_cde_cr_get_aws_account_info() {
         region=$(aws configure get region --profile "$AWS_PROFILE" 2>/dev/null)
     fi
     if [[ -z "$region" ]]; then
-        gum style --foreground 196 "❌ No AWS region configured. Set AWS_REGION or configure default region."
+        gum style --foreground 196 "❌ No AWS region configured. Set AWS_REGION or configure default region." >&2
         return 1
     fi
     
