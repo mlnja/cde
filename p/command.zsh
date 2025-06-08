@@ -3,19 +3,8 @@
 
 # Load cloud provider modules for p command
 __mlnj_cde_p_load_providers() {
-    local plugin_dir
-    
-    # Try to determine plugin directory
-    if [[ -n "${(%):-%N}" ]]; then
-        # Get directory of current script file and go up one level
-        plugin_dir="$(dirname "$(dirname "${(%):-%N}")")"
-    elif [[ -d "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/cde" ]]; then
-        # Fallback to oh-my-zsh directory
-        plugin_dir="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/cde"
-    else
-        # Last resort - parent directory
-        plugin_dir=".."
-    fi
+    # Use the stored plugin directory from main plugin
+    local plugin_dir="$__MLNJ_CDE_PLUGIN_DIR"
     
     local providers_dir="$plugin_dir/p/providers"
     
