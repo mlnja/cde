@@ -31,11 +31,8 @@ source ~/.zshrc
 # List all cached items
 cde cache
 
-# Set a cache value
-cde cache mykey myvalue
-
-# Get a cache value
-cde cache mykey
+# Clean cache
+cde cache.clean
 ```
 
 ### Plugin Management
