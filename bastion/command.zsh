@@ -34,45 +34,41 @@ _cde_show_tunnel_table() {
     local current_profile="$1"
     local config_file="$2"
     
-    echo ""
-    gum style --foreground 86 "🚇 Tunnel Status for profile: $current_profile"
-    echo ""
-    
-    # Create table data
-    local table_data=""
-    local target_names=()
+    # Create display data array
+    local display_lines=()
     
     # Get all targets for current profile
     while IFS= read -r target_name; do
         if [[ -n "$target_name" ]]; then
-            target_names+=("$target_name")
-            
             # Get target details
             local target_host=$(yq eval ".bastion_targets[] | select(.profile == \"$current_profile\" and .name == \"$target_name\") | .host" "$config_file")
             local target_port=$(yq eval ".bastion_targets[] | select(.profile == \"$current_profile\" and .name == \"$target_name\") | .port" "$config_file")
-            local local_port="${target_port#*:}"
             
             # Check if tmux session exists
             local session_name="__mlnj_cde_tun_${target_name}"
-            local tunnel_status="❌ Stopped"
+            local status_icon="❌"
             if tmux has-session -t "$session_name" 2>/dev/null; then
-                tunnel_status="✅ Running"
+                status_icon="✅"
             fi
             
-            table_data+="${target_name}\t${target_host}:${target_port}\t${tunnel_status}\n"
+            display_lines+=("🚇 $target_name | $target_host:$target_port | $status_icon")
         fi
     done <<< "$(yq eval ".bastion_targets[] | select(.profile == \"$current_profile\") | .name" "$config_file" 2>/dev/null)"
     
-    # Display table
-    if [[ -n "$table_data" ]]; then
-        echo -e "Name\tTarget\tStatus" | gum table --columns "Name,Target,Status"
-        echo -e "$table_data" | gum table --columns "Name,Target,Status"
+    if [[ ${#display_lines[@]} -eq 0 ]]; then
+        return 0
     fi
     
-    echo ""
+    # Interactive selection with filter
+    gum style --foreground 86 "🚇 Select tunnel ($current_profile):"
+    local selected=$(printf '%s\n' "${display_lines[@]}" | gum filter --placeholder="Type to filter tunnels..." --height=10)
     
-    # Let user choose target
-    local chosen_target=$(printf '%s\n' "${target_names[@]}" | gum choose --header "Select tunnel:")
+    if [[ -z "$selected" ]]; then
+        return 0
+    fi
+    
+    # Extract target name from selected line
+    local chosen_target=$(echo "$selected" | cut -d'|' -f1 | sed 's/🚇 //' | xargs)
     
     if [[ -z "$chosen_target" ]]; then
         return 0
