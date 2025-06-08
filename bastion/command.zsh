@@ -95,8 +95,30 @@ _cde_find_bastion_instance() {
     local cached_data=$(skate get "${cache_key}@__mlnj_cde" 2>/dev/null)
     
     if [[ -z "$cached_data" ]]; then
-        gum style --foreground 214 "⚠️  No cached SSM instances found. Run 'cde.ssm refresh' first"
-        return 1
+        gum style --foreground 214 "⚠️  No cached SSM instances found. Running 'cde.ssm refresh'..." >&2
+        
+        # Load SSM command if not already loaded
+        if ! declare -f _cde_ssm >/dev/null; then
+            local plugin_dir=$(__mlnj_cde_get_plugin_dir)
+            local ssm_command="$plugin_dir/ssm/command.zsh"
+            if [[ -f "$ssm_command" ]]; then
+                source "$ssm_command"
+            else
+                gum style --foreground 196 "❌ SSM command not found" >&2
+                return 1
+            fi
+        fi
+        
+        # Run refresh
+        _cde_ssm refresh >&2
+        
+        # Try to get cached data again
+        cached_data=$(skate get "${cache_key}@__mlnj_cde" 2>/dev/null)
+        
+        if [[ -z "$cached_data" ]]; then
+            gum style --foreground 196 "❌ Failed to cache SSM instances" >&2
+            return 1
+        fi
     fi
     
     # Parse cached JSON data to find bastion instance
