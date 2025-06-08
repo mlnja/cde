@@ -14,18 +14,21 @@ if ! command -v yq >/dev/null 2>&1; then
     echo "⚠️  yq not found. Install with: go install github.com/mikefarah/yq/v4@latest"
 fi
 
+# Store plugin directory when plugin loads
+if [[ -n "${(%):-%N}" ]]; then
+    # Get directory of current script file during load
+    __MLNJ_CDE_PLUGIN_DIR="$(dirname "${(%):-%N}")"
+elif [[ -d "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/cde" ]]; then
+    # Fallback to oh-my-zsh directory
+    __MLNJ_CDE_PLUGIN_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/cde"
+else
+    # Last resort - current directory
+    __MLNJ_CDE_PLUGIN_DIR="."
+fi
+
 # Get plugin directory helper
 __mlnj_cde_get_plugin_dir() {
-    if [[ -n "${(%):-%N}" ]]; then
-        # Get directory of current script file
-        echo "$(dirname "${(%):-%N}")"
-    elif [[ -d "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/cde" ]]; then
-        # Fallback to oh-my-zsh directory
-        echo "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/cde"
-    else
-        # Last resort - current directory
-        echo "."
-    fi
+    echo "$__MLNJ_CDE_PLUGIN_DIR"
 }
 
 # Lazy load p command when needed
