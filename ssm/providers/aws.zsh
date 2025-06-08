@@ -1,7 +1,7 @@
 # AWS SSM Provider for CDE
 # AWS EC2 instance connection via Session Manager
 
-# List AWS EC2 instances available for SSM
+# List AWS EC2 instances available for SSM - returns JSON data
 __mlnj_cde_aws_list_ssm_instances() {
     if [[ -z "$AWS_PROFILE" ]]; then
         return 1
@@ -11,8 +11,8 @@ __mlnj_cde_aws_list_ssm_instances() {
         return 1
     fi
     
-    if ! command -v yq >/dev/null 2>&1; then
-        gum style --foreground 196 "❌ yq command required for data processing"
+    if ! command -v jq >/dev/null 2>&1; then
+        gum style --foreground 196 "❌ jq command required for data processing"
         return 1
     fi
     
@@ -22,82 +22,38 @@ __mlnj_cde_aws_list_ssm_instances() {
         return 1
     fi
     
-    # Query 1: Get all running EC2 instances with comprehensive data
+    # Get all running EC2 instances with comprehensive data
     local ec2_data=$(aws ec2 describe-instances \
         --filters "Name=instance-state-name,Values=running" \
         --query "Reservations[*].Instances[*].{InstanceId: InstanceId, InstanceType: InstanceType, PrivateIp: PrivateIpAddress, PublicIp: PublicIpAddress, Tags: Tags}" \
-        --output yaml 2>/dev/null)
+        --output json 2>/dev/null)
     
-    if [[ -z "$ec2_data" ]]; then
+    if [[ -z "$ec2_data" ]] || [[ "$ec2_data" == "[]" ]]; then
         return 1
     fi
     
-    # Query 2: Get all SSM-managed instances in one call
-    local ssm_data=$(aws ssm describe-instance-information \
+    # Get all SSM-managed instances in one call
+    local ssm_instances=$(aws ssm describe-instance-information \
         --query 'InstanceInformationList[?PingStatus==`Online`].InstanceId' \
-        --output yaml 2>/dev/null)
+        --output json 2>/dev/null)
     
-    if [[ -z "$ssm_data" ]]; then
+    if [[ -z "$ssm_instances" ]] || [[ "$ssm_instances" == "[]" ]]; then
         return 1
     fi
     
-    # Convert SSM data to newline-separated list for easy lookup
-    local ssm_instances_list=$(echo "$ssm_data" | yq eval '.[]' - 2>/dev/null)
-    
-    # Use a simple approach: loop through EC2 instances and check SSM connectivity
-    local ssm_instances=()
-    
-    # Convert EC2 YAML to individual instance records and process each
-    local current_instance=""
-    local instance_id=""
-    local instance_type=""
-    local private_ip=""
-    local instance_name=""
-    
-    while IFS= read -r line; do
-        if [[ "$line" =~ ^[[:space:]]*-[[:space:]]*-[[:space:]]*InstanceId: ]]; then
-            # New instance starting, process previous if exists
-            if [[ -n "$instance_id" ]] && echo "$ssm_instances_list" | grep -q "^$instance_id$"; then
-                local display_name="${instance_name:-unnamed}"
-                local formatted_name=$(printf "%-32.32s" "$display_name")
-                local formatted_id=$(printf "%-19s" "$instance_id")
-                local formatted_type=$(printf "%-15s" "$instance_type")
-                local formatted_ip=$(printf "%-15s" "$private_ip")
-                ssm_instances+=("💻 ${formatted_id} │ ${formatted_name} │ ${formatted_type} │ ${formatted_ip}")
-            fi
-            
-            # Reset for new instance
-            instance_id=$(echo "$line" | sed 's/^[[:space:]]*-[[:space:]]*-[[:space:]]*InstanceId:[[:space:]]*//')
-            instance_type=""
-            private_ip=""
-            instance_name=""
-        elif [[ "$line" =~ ^[[:space:]]*InstanceType: ]]; then
-            instance_type=$(echo "$line" | sed 's/^[[:space:]]*InstanceType:[[:space:]]*//')
-        elif [[ "$line" =~ ^[[:space:]]*PrivateIp: ]]; then
-            private_ip=$(echo "$line" | sed 's/^[[:space:]]*PrivateIp:[[:space:]]*//')
-            [[ "$private_ip" == "null" ]] && private_ip="N/A"
-        elif [[ "$line" =~ ^[[:space:]]*-[[:space:]]*Key:[[:space:]]*Name$ ]]; then
-            # Next line should be the Value
-            read -r value_line
-            if [[ "$value_line" =~ ^[[:space:]]*Value: ]]; then
-                instance_name=$(echo "$value_line" | sed 's/^[[:space:]]*Value:[[:space:]]*//')
-            fi
-        fi
-    done <<< "$ec2_data"
-    
-    # Process the last instance
-    if [[ -n "$instance_id" ]] && echo "$ssm_instances_list" | grep -q "^$instance_id$"; then
-        local display_name="${instance_name:-unnamed}"
-        local formatted_name=$(printf "%-32.32s" "$display_name")
-        local formatted_id=$(printf "%-19s" "$instance_id")
-        local formatted_type=$(printf "%-15s" "$instance_type")
-        local formatted_ip=$(printf "%-15s" "$private_ip")
-        ssm_instances+=("💻 ${formatted_id} │ ${formatted_name} │ ${formatted_type} │ ${formatted_ip}")
-    fi
-    
-    if [[ ${#ssm_instances[@]} -gt 0 ]]; then
-        printf '%s\n' "${ssm_instances[@]}"
-    fi
+    # Process and output each SSM-enabled instance as single-line JSON
+    echo "$ec2_data" | jq -r --argjson ssm_list "$ssm_instances" '
+        flatten | .[] | 
+        select(.InstanceId as $id | $ssm_list | index($id)) |
+        {
+            instanceId: .InstanceId,
+            instanceType: .InstanceType,
+            privateIp: (.PrivateIp // "N/A"),
+            publicIp: (.PublicIp // "N/A"),
+            name: ((.Tags // []) | map(select(.Key == "Name")) | .[0].Value // "unnamed"),
+            tags: .Tags,
+            bastion: ((.Tags // []) | map(select(.Key == "Bastion")) | .[0].Value // "false")
+        } | @json'
 }
 
 # Connect to AWS EC2 instance via SSM

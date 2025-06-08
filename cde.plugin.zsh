@@ -70,6 +70,20 @@ __mlnj_cde_load_cache_command() {
     fi
 }
 
+# Lazy load bastion command when needed
+__mlnj_cde_load_bastion_command() {
+    local plugin_dir=$(__mlnj_cde_get_plugin_dir)
+    local bastion_command="$plugin_dir/bastion/command.zsh"
+    
+    if [[ -f "$bastion_command" ]]; then
+        source "$bastion_command"
+        return 0
+    else
+        gum style --foreground 196 "❌ Bastion command not found"
+        return 1
+    fi
+}
+
 # Main CDE function
 cde() {
     if [[ $# -eq 0 ]]; then
@@ -123,6 +137,7 @@ __mlnj_cde_help() {
     echo "Standalone commands:"
     echo "  cde.p                    - Select cloud profile"
     echo "  cde.ssm [refresh|show]   - Connect to cloud instances"
+    echo "  cde.tun                  - Connect via bastion tunnel"
 }
 
 # Update function
@@ -168,4 +183,13 @@ cde.ssm() {
         __mlnj_cde_load_ssm_command || return 1
     fi
     _cde_ssm "$@"
+}
+
+# Lazy loading alias for cde.tun
+cde.tun() {
+    # Lazy load bastion command if not already loaded
+    if ! declare -f _cde_bastion >/dev/null; then
+        __mlnj_cde_load_bastion_command || return 1
+    fi
+    _cde_bastion "$@"
 }

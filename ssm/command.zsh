@@ -143,10 +143,22 @@ __mlnj_cde_ssm_connect() {
         fi
     fi
     
-    # Convert cached data to array
+    # Convert cached JSON data to display format and create instances array
     local instances=()
+    local json_data=()
+    
     while IFS= read -r line; do
-        [[ -n "$line" ]] && instances+=("$line")
+        if [[ -n "$line" ]]; then
+            json_data+=("$line")
+            # Create display format using jq (filter out bastion tag for regular SSM list)
+            local display_line=$(echo "$line" | jq -r '
+                "💻 " + (.instanceId | . + (" " * (19 - length))) + " │ " + 
+                ((.name | . + (" " * (32 - length))) | .[:32]) + " │ " + 
+                ((.instanceType | . + (" " * (15 - length))) | .[:15]) + " │ " + 
+                ((.privateIp | . + (" " * (15 - length))) | .[:15])
+            ')
+            instances+=("$display_line")
+        fi
     done <<< "$cached_instances"
     
     # Show selection with fuzzy filter
@@ -221,10 +233,19 @@ __mlnj_cde_ssm_show() {
         return 1
     fi
     
-    # Convert cached data to array for table
+    # Convert cached JSON data to display format for table
     local instances=()
     while IFS= read -r line; do
-        [[ -n "$line" ]] && instances+=("$line")
+        if [[ -n "$line" ]]; then
+            # Create display format using jq (filter out bastion tag for regular SSM list)
+            local display_line=$(echo "$line" | jq -r '
+                "💻 " + (.instanceId | . + (" " * (19 - length))) + " │ " + 
+                ((.name | . + (" " * (32 - length))) | .[:32]) + " │ " + 
+                ((.instanceType | . + (" " * (15 - length))) | .[:15]) + " │ " + 
+                ((.privateIp | . + (" " * (15 - length))) | .[:15])
+            ')
+            instances+=("$display_line")
+        fi
     done <<< "$cached_instances"
     
     if [[ ${#instances[@]} -eq 0 ]]; then
