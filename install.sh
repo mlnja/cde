@@ -40,9 +40,10 @@ else
 fi
 
 # Install dependencies via Go
-echo "📦 Installing gum and skate via Go..."
+echo "📦 Installing gum, skate, and yq via Go..."
 go install github.com/charmbracelet/gum@latest
 go install github.com/charmbracelet/skate@latest
+go install github.com/mikefarah/yq/v4@latest
 
 # Ensure Go bin is in PATH
 if [[ ":$PATH:" != *":$HOME/go/bin:"* ]]; then

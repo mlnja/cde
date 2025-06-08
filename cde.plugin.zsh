@@ -10,6 +10,10 @@ if ! command -v skate >/dev/null 2>&1; then
     echo "⚠️  skate not found. Install with: go install github.com/charmbracelet/skate@latest"
 fi
 
+if ! command -v yq >/dev/null 2>&1; then
+    echo "⚠️  yq not found. Install with: go install github.com/mikefarah/yq/v4@latest"
+fi
+
 # Get plugin directory helper
 __mlnj_cde_get_plugin_dir() {
     if [[ -n "${(%):-%N}" ]]; then

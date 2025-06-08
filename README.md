@@ -48,6 +48,7 @@ cde help
 
 - 🎨 Beautiful UI with [gum](https://github.com/charmbracelet/gum)
 - 💾 Persistent caching with [skate](https://github.com/charmbracelet/skate)
+- 📄 YAML processing with [yq](https://github.com/mikefarah/yq)
 - 🔄 Git-based updates
 - 🌈 Colorful terminal output
 
@@ -56,4 +57,5 @@ cde help
 This plugin uses:
 - **gum** for beautiful terminal UI components
 - **skate** for key-value storage and caching
+- **yq** for YAML/JSON processing
 - **oh-my-zsh** plugin architecture
