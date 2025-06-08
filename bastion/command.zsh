@@ -25,36 +25,107 @@ _cde_bastion() {
         return 1
     fi
     
-    # Convert to array for gum choose
-    local target_array=()
-    while IFS= read -r target; do
-        if [[ -n "$target" ]]; then
-            target_array+=("$target")
-        fi
-    done <<< "$targets"
+    # Show tunnel status table
+    _cde_show_tunnel_table "$current_profile" "$config_file"
+}
+
+# Show tunnel status table with tmux session info
+_cde_show_tunnel_table() {
+    local current_profile="$1"
+    local config_file="$2"
     
-    if [[ ${#target_array[@]} -eq 0 ]]; then
-        gum style --foreground 214 "⚠️  No targets available"
-        return 1
+    echo ""
+    gum style --foreground 86 "🚇 Tunnel Status for profile: $current_profile"
+    echo ""
+    
+    # Create table data
+    local table_data=""
+    local target_names=()
+    
+    # Get all targets for current profile
+    while IFS= read -r target_name; do
+        if [[ -n "$target_name" ]]; then
+            target_names+=("$target_name")
+            
+            # Get target details
+            local target_host=$(yq eval ".bastion_targets[] | select(.profile == \"$current_profile\" and .name == \"$target_name\") | .host" "$config_file")
+            local target_port=$(yq eval ".bastion_targets[] | select(.profile == \"$current_profile\" and .name == \"$target_name\") | .port" "$config_file")
+            local local_port="${target_port#*:}"
+            
+            # Check if tmux session exists
+            local session_name="__mlnj_cde_tun_${target_name}"
+            local status="❌ Stopped"
+            if tmux has-session -t "$session_name" 2>/dev/null; then
+                status="✅ Running"
+            fi
+            
+            table_data+="${target_name}\t${target_host}:${target_port}\t${status}\n"
+        fi
+    done <<< "$(yq eval ".bastion_targets[] | select(.profile == \"$current_profile\") | .name" "$config_file" 2>/dev/null)"
+    
+    # Display table
+    if [[ -n "$table_data" ]]; then
+        echo -e "Name\tTarget\tStatus" | gum table --columns "Name,Target,Status"
+        echo -e "$table_data" | gum table --columns "Name,Target,Status"
     fi
+    
+    echo ""
     
     # Let user choose target
-    local chosen_target
-    if [[ ${#target_array[@]} -eq 1 ]]; then
-        chosen_target="${target_array[1]}"
-        gum style --foreground 86 "🎯 Using only available target: $chosen_target"
-    else
-        chosen_target=$(printf '%s\n' "${target_array[@]}" | gum choose --header "🚇 Select bastion target:")
-    fi
+    local chosen_target=$(printf '%s\n' "${target_names[@]}" | gum choose --header "Select tunnel:")
     
     if [[ -z "$chosen_target" ]]; then
-        gum style --foreground 214 "⚠️  No target selected"
-        return 1
+        return 0
     fi
     
+    # Check if tunnel is already running
+    local session_name="__mlnj_cde_tun_${chosen_target}"
+    if tmux has-session -t "$session_name" 2>/dev/null; then
+        _cde_manage_existing_tunnel "$chosen_target" "$session_name"
+    else
+        _cde_start_new_tunnel "$chosen_target" "$current_profile" "$config_file"
+    fi
+}
+
+# Manage existing tunnel
+_cde_manage_existing_tunnel() {
+    local target_name="$1"
+    local session_name="$2"
+    
+    echo ""
+    local action=$(echo -e "View logs\nKill tunnel" | gum choose --header "Tunnel '$target_name' is running. Choose action:")
+    
+    case "$action" in
+        "View logs")
+            local log_file="/tmp/${session_name}.log"
+            if [[ -f "$log_file" ]]; then
+                gum style --foreground 86 "📋 Viewing logs for $target_name (Press Ctrl+C to exit)"
+                echo ""
+                tail -f "$log_file"
+            else
+                gum style --foreground 214 "⚠️  Log file not found: $log_file"
+            fi
+            ;;
+        "Kill tunnel")
+            gum style --foreground 214 "🔴 Stopping tunnel: $target_name"
+            tmux kill-session -t "$session_name"
+            # Clean up log file
+            local log_file="/tmp/${session_name}.log"
+            [[ -f "$log_file" ]] && rm "$log_file"
+            gum style --foreground 86 "✅ Tunnel stopped"
+            ;;
+    esac
+}
+
+# Start new tunnel in detached tmux session
+_cde_start_new_tunnel() {
+    local target_name="$1"
+    local current_profile="$2"
+    local config_file="$3"
+    
     # Get target details
-    local target_host=$(yq eval ".bastion_targets[] | select(.profile == \"$current_profile\" and .name == \"$chosen_target\") | .host" "$config_file")
-    local target_port=$(yq eval ".bastion_targets[] | select(.profile == \"$current_profile\" and .name == \"$chosen_target\") | .port" "$config_file")
+    local target_host=$(yq eval ".bastion_targets[] | select(.profile == \"$current_profile\" and .name == \"$target_name\") | .host" "$config_file")
+    local target_port=$(yq eval ".bastion_targets[] | select(.profile == \"$current_profile\" and .name == \"$target_name\") | .port" "$config_file")
     
     # Parse port (format: remote:local)
     local remote_port="${target_port%:*}"
@@ -71,18 +142,27 @@ _cde_bastion() {
     fi
     
     gum style --foreground 86 "🚇 Found bastion: $bastion_instance"
-    gum style --foreground 86 "🔗 Connecting to: $chosen_target"
+    gum style --foreground 86 "🔗 Starting tunnel: $target_name"
     gum style --foreground 214 "📡 $target_host:$remote_port -> localhost:$local_port"
     
-    # Start the SSM session
-    echo ""
-    gum style --foreground 214 "🚀 Starting tunnel... (Press Ctrl+C to stop)"
-    echo ""
+    # Create tmux session name and log file
+    local session_name="__mlnj_cde_tun_${target_name}"
+    local log_file="/tmp/${session_name}.log"
     
-    AWS_PROFILE="$current_profile" aws ssm start-session \
-        --target "$bastion_instance" \
+    # Clean up any existing log file
+    [[ -f "$log_file" ]] && rm "$log_file"
+    
+    # Start tunnel in detached tmux session with logging
+    tmux new-session -d -s "$session_name" \
+        "AWS_PROFILE='$current_profile' aws ssm start-session \
+        --target '$bastion_instance' \
         --document-name AWS-StartPortForwardingSessionToRemoteHost \
-        --parameters "host=\"$target_host\",portNumber=\"$remote_port\",localPortNumber=\"$local_port\""
+        --parameters 'host=\"$target_host\",portNumber=\"$remote_port\",localPortNumber=\"$local_port\"' \
+        2>&1 | tee '$log_file'"
+    
+    gum style --foreground 86 "✅ Tunnel started in detached session: $session_name"
+    echo ""
+    gum style --foreground 214 "💡 Use 'cde.tun' again to view logs or stop the tunnel"
 }
 
 # Find bastion instance with Bastion=true tag
