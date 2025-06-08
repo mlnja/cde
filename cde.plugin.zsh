@@ -87,6 +87,20 @@ __mlnj_cde_load_bastion_command() {
     fi
 }
 
+# Lazy load cr command when needed
+__mlnj_cde_load_cr_command() {
+    local plugin_dir=$(__mlnj_cde_get_plugin_dir)
+    local cr_command="$plugin_dir/cr/command.zsh"
+    
+    if [[ -f "$cr_command" ]]; then
+        source "$cr_command"
+        return 0
+    else
+        gum style --foreground 196 "❌ CR command not found"
+        return 1
+    fi
+}
+
 # Main CDE function
 cde() {
     if [[ $# -eq 0 ]]; then
@@ -141,6 +155,7 @@ __mlnj_cde_help() {
     echo "  cde.p                    - Select cloud profile"
     echo "  cde.ssm [refresh|show]   - Connect to cloud instances"
     echo "  cde.tun                  - Connect via bastion tunnel"
+    echo "  cde.cr login [region]    - Login to ECR Docker registry"
 }
 
 # Update function
@@ -195,4 +210,13 @@ cde.tun() {
         __mlnj_cde_load_bastion_command || return 1
     fi
     _cde_bastion "$@"
+}
+
+# Lazy loading alias for cde.cr
+cde.cr() {
+    # Lazy load cr command if not already loaded
+    if ! declare -f _cde_cr >/dev/null; then
+        __mlnj_cde_load_cr_command || return 1
+    fi
+    _cde_cr "$@"
 }
