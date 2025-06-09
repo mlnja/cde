@@ -156,6 +156,10 @@ _cde_start_new_tunnel() {
         --parameters 'host=\"$target_host\",portNumber=\"$remote_port\",localPortNumber=\"$local_port\"' \
         2>&1 | tee '$log_file'"
     
+    # Prevent users from attaching to tunnel sessions
+    tmux set-option -t "$session_name" 'user-keys' on
+    tmux set-option -t "$session_name" 'acl-users' 'deny-attach:*'
+    
     gum style --foreground 86 "✅ Tunnel started in detached session: $session_name"
     echo ""
     gum style --foreground 214 "💡 Use 'cde.tun' again to view logs or stop the tunnel"
