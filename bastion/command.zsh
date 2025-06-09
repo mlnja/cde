@@ -157,8 +157,8 @@ _cde_start_new_tunnel() {
         2>&1 | tee '$log_file'"
     
     # Prevent users from attaching to tunnel sessions
-    tmux set-option -t "$session_name" 'user-keys' on
-    tmux set-option -t "$session_name" 'acl-users' 'deny-attach:*'
+    # Fallback: Add hook to immediately detach any attach attempts
+    tmux set-hook -t "$session_name" client-attached 'detach-client'
     
     gum style --foreground 86 "✅ Tunnel started in detached session: $session_name"
     echo ""
