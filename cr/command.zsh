@@ -116,7 +116,7 @@ __mlnj_cde_cr_get_aws_url() {
     
     # Check if running in command substitution (suppress stderr if so)
     local in_subshell=false
-    if [[ -n "$ZSH_SUBSHELL" ]] || [[ "$BASH_SUBSHELL" -gt 0 ]]; then
+    if [[ "$ZSH_SUBSHELL" -gt 0 ]] || [[ "$BASH_SUBSHELL" -gt 0 ]]; then
         in_subshell=true
     fi
     
