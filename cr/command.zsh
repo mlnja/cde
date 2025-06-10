@@ -114,14 +114,22 @@ __mlnj_cde_cr_get_url() {
 __mlnj_cde_cr_get_aws_url() {
     local custom_region="$1"
     
+    # Check if running in command substitution (suppress stderr if so)
+    local in_subshell=false
+    if [[ "$SHLVL" -gt 1 ]] || [[ -n "$ZSH_SUBSHELL" ]] || [[ "$BASH_SUBSHELL" -gt 0 ]]; then
+        in_subshell=true
+    fi
+    
     # Get account info silently
     local account_info=$(__mlnj_cde_cr_get_aws_account_info silent)
     if [[ $? -ne 0 ]]; then
-        echo "❌ Failed to get AWS account information. Check your AWS credentials." >&2
-        echo "" >&2
-        echo "💡 Usage examples:" >&2
-        echo "   docker build -t \$(cde.cr)/my/image:tag ." >&2
-        echo "   docker build -t \$(cde.cr us-west-2)/my/image:tag ." >&2
+        if [[ "$in_subshell" == "false" ]]; then
+            echo "❌ Failed to get AWS account information. Check your AWS credentials." >&2
+            echo "" >&2
+            echo "💡 Usage examples:" >&2
+            echo "   docker build -t \$(cde.cr)/my/image:tag ." >&2
+            echo "   docker build -t \$(cde.cr us-west-2)/my/image:tag ." >&2
+        fi
         return 1
     fi
     
@@ -131,7 +139,9 @@ __mlnj_cde_cr_get_aws_url() {
     # Use custom region if provided
     if [[ -n "$custom_region" ]]; then
         region="$custom_region"
-        echo "🌍 Using custom region: $region" >&2
+        if [[ "$in_subshell" == "false" ]]; then
+            echo "🌍 Using custom region: $region" >&2
+        fi
     fi
     
     local ecr_url="${account_id}.dkr.ecr.${region}.amazonaws.com"
@@ -139,17 +149,19 @@ __mlnj_cde_cr_get_aws_url() {
     # Output URL to stdout
     echo "$ecr_url"
     
-    # Output helpful information to stderr
-    echo "" >&2
-    echo "💡 Usage examples:" >&2
-    echo "   docker build -t \$(cde.cr)/my/image:tag ." >&2
-    echo "   docker push \$(cde.cr)/my/image:tag" >&2
-    echo "   docker build -t \$(cde.cr us-west-2)/my/image:tag ." >&2
-    echo "" >&2
-    echo "🔐 To login to this registry, run:" >&2
-    echo "   cde.cr login" >&2
-    if [[ -n "$custom_region" ]]; then
-        echo "   cde.cr login $custom_region" >&2
+    # Output helpful information to stderr only if not in subshell
+    if [[ "$in_subshell" == "false" ]]; then
+        echo "" >&2
+        echo "💡 Usage examples:" >&2
+        echo "   docker build -t \$(cde.cr)/my/image:tag ." >&2
+        echo "   docker push \$(cde.cr)/my/image:tag" >&2
+        echo "   docker build -t \$(cde.cr us-west-2)/my/image:tag ." >&2
+        echo "" >&2
+        echo "🔐 To login to this registry, run:" >&2
+        echo "   cde.cr login" >&2
+        if [[ -n "$custom_region" ]]; then
+            echo "   cde.cr login $custom_region" >&2
+        fi
     fi
 }
 
