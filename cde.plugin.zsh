@@ -182,7 +182,7 @@ __mlnj_cde_update() {
     
     if [[ $git_exit_code -eq 0 ]]; then
         # Success - check if there were updates or already up to date
-        if echo "$git_output" | grep -q "Already up to date"; then
+        if [[ "$git_output" == *"Already up to date"* ]]; then
             gum style --foreground 86 "✅ CDE plugin is already up to date!"
         else
             # Show only the commit range line if there were updates
