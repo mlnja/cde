@@ -20,12 +20,18 @@ __mlnj_cde_cr_check_profile() {
 
 # Get AWS account ID and region from current AWS profile
 __mlnj_cde_cr_get_aws_account_info() {
-    gum style --foreground 214 "🔍 Getting AWS account information..." >&2
+    local silent="$1"
+    
+    if [[ "$silent" != "silent" ]]; then
+        gum style --foreground 214 "🔍 Getting AWS account information..." >&2
+    fi
     
     # Get account ID
     local account_id=$(aws sts get-caller-identity --query Account --output text 2>/dev/null)
     if [[ -z "$account_id" || "$account_id" == "None" ]]; then
-        gum style --foreground 196 "❌ Failed to get AWS account ID. Check your AWS credentials." >&2
+        if [[ "$silent" != "silent" ]]; then
+            gum style --foreground 196 "❌ Failed to get AWS account ID. Check your AWS credentials." >&2
+        fi
         return 1
     fi
     
@@ -35,7 +41,9 @@ __mlnj_cde_cr_get_aws_account_info() {
         region=$(aws configure get region --profile "$AWS_PROFILE" 2>/dev/null)
     fi
     if [[ -z "$region" ]]; then
-        gum style --foreground 196 "❌ No AWS region configured. Set AWS_REGION or configure default region." >&2
+        if [[ "$silent" != "silent" ]]; then
+            gum style --foreground 196 "❌ No AWS region configured. Set AWS_REGION or configure default region." >&2
+        fi
         return 1
     fi
     
@@ -71,6 +79,89 @@ __mlnj_cde_cr_login() {
             return 1
             ;;
     esac
+}
+
+# Get registry URL for current cloud provider (stdout only)
+__mlnj_cde_cr_get_url() {
+    local custom_region="$1"
+    
+    # Check which cloud provider is active
+    local provider=$(__mlnj_cde_cr_check_profile 2>/dev/null)
+    if [[ $? -ne 0 ]]; then
+        echo "❌ No cloud profile set. Use 'cde.p' to select a profile first." >&2
+        echo "" >&2
+        echo "💡 Usage examples:" >&2
+        echo "   docker build -t \$(cde.cr)/my/image:tag ." >&2
+        echo "   docker build -t \$(cde.cr us-west-2)/my/image:tag ." >&2
+        return 1
+    fi
+    
+    case "$provider" in
+        "aws")
+            __mlnj_cde_cr_get_aws_url "$custom_region"
+            ;;
+        "gcp")
+            echo "🌍 GCP container registry not yet implemented" >&2
+            echo "" >&2
+            echo "💡 Usage examples:" >&2
+            echo "   docker build -t \$(cde.cr)/my/image:tag ." >&2
+            return 1
+            ;;
+        "azure")
+            echo "🌍 Azure container registry not yet implemented" >&2
+            echo "" >&2
+            echo "💡 Usage examples:" >&2
+            echo "   docker build -t \$(cde.cr)/my/image:tag ." >&2
+            return 1
+            ;;
+        *)
+            echo "❌ Unknown provider: $provider" >&2
+            return 1
+            ;;
+    esac
+}
+
+# Get AWS ECR URL (stdout only)
+__mlnj_cde_cr_get_aws_url() {
+    local custom_region="$1"
+    
+    # Get account info silently
+    local account_info=$(__mlnj_cde_cr_get_aws_account_info silent)
+    if [[ $? -ne 0 ]]; then
+        echo "❌ Failed to get AWS account information. Check your AWS credentials." >&2
+        echo "" >&2
+        echo "💡 Usage examples:" >&2
+        echo "   docker build -t \$(cde.cr)/my/image:tag ." >&2
+        echo "   docker build -t \$(cde.cr us-west-2)/my/image:tag ." >&2
+        return 1
+    fi
+    
+    local account_id=$(echo "$account_info" | cut -d' ' -f1)
+    local region=$(echo "$account_info" | cut -d' ' -f2)
+    
+    # Use custom region if provided
+    if [[ -n "$custom_region" ]]; then
+        region="$custom_region"
+        echo "🌍 Using custom region: $region" >&2
+    fi
+    
+    local ecr_url="${account_id}.dkr.ecr.${region}.amazonaws.com"
+    
+    # Output URL to stdout
+    echo "$ecr_url"
+    
+    # Output helpful information to stderr
+    echo "" >&2
+    echo "💡 Usage examples:" >&2
+    echo "   docker build -t \$(cde.cr)/my/image:tag ." >&2
+    echo "   docker push \$(cde.cr)/my/image:tag" >&2
+    echo "   docker build -t \$(cde.cr us-west-2)/my/image:tag ." >&2
+    echo "" >&2
+    echo "🔐 To login to this registry, run:" >&2
+    echo "   cde.cr login" >&2
+    if [[ -n "$custom_region" ]]; then
+        echo "   cde.cr login $custom_region" >&2
+    fi
 }
 
 # AWS ECR login function
@@ -110,9 +201,16 @@ _cde_cr() {
     local subcommand="$1"
     
     if [[ -z "$subcommand" ]]; then
-        echo "Available commands:"
-        echo "  cde.cr login [region]  - Login to ECR Docker registry"
-        return 1
+        # No arguments - output registry URL to stdout
+        __mlnj_cde_cr_get_url
+        return $?
+    fi
+    
+    # Check if first argument looks like a region (no subcommand)
+    if [[ "$subcommand" =~ ^[a-z]{2}-[a-z]+-[0-9]+$ ]]; then
+        # First argument is a region, output URL with custom region
+        __mlnj_cde_cr_get_url "$subcommand"
+        return $?
     fi
     
     shift
@@ -125,6 +223,7 @@ _cde_cr() {
             gum style --foreground 196 "❌ Unknown cr subcommand: $subcommand"
             echo "Available commands:"
             echo "  cde.cr login [region]  - Login to ECR Docker registry"
+            echo "  cde.cr [region]        - Get registry URL"
             return 1
             ;;
     esac
