@@ -18,36 +18,25 @@ __mlnj_cde_cr_check_profile() {
     fi
 }
 
-# Get AWS account ID and region from current AWS profile
+# Get AWS account ID and region from cache (set by profile selection)
 __mlnj_cde_cr_get_aws_account_info() {
     local silent="$1"
     
+    # Create cache key based on AWS profile
+    local cache_key="aws_account_info:${AWS_PROFILE:-default}"
+    
+    # Get cached info (populated when profile is selected)
+    local cached_info=$(skate get "${cache_key}@__mlnj_cde" 2>/dev/null)
+    if [[ -n "$cached_info" ]]; then
+        echo "$cached_info"
+        return 0
+    fi
+    
+    # No cached info - user needs to select profile first
     if [[ "$silent" != "silent" ]]; then
-        gum style --foreground 214 "🔍 Getting AWS account information..." >&2
+        gum style --foreground 196 "❌ No cached AWS account information. Run 'cde.p' to select a profile first." >&2
     fi
-    
-    # Get account ID
-    local account_id=$(aws sts get-caller-identity --query Account --output text 2>/dev/null)
-    if [[ -z "$account_id" || "$account_id" == "None" ]]; then
-        if [[ "$silent" != "silent" ]]; then
-            gum style --foreground 196 "❌ Failed to get AWS account ID. Check your AWS credentials." >&2
-        fi
-        return 1
-    fi
-    
-    # Get region (prefer AWS_REGION, fallback to AWS_DEFAULT_REGION, then aws configure)
-    local region="${AWS_REGION:-${AWS_DEFAULT_REGION}}"
-    if [[ -z "$region" ]]; then
-        region=$(aws configure get region --profile "$AWS_PROFILE" 2>/dev/null)
-    fi
-    if [[ -z "$region" ]]; then
-        if [[ "$silent" != "silent" ]]; then
-            gum style --foreground 196 "❌ No AWS region configured. Set AWS_REGION or configure default region." >&2
-        fi
-        return 1
-    fi
-    
-    echo "$account_id $region"
+    return 1
 }
 
 # Container registry login function

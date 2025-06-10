@@ -21,9 +21,24 @@ __mlnj_cde_aws_ensure_auth() {
     
     gum style --foreground 214 "🔍 Checking AWS authentication..."
     
-    # Quick auth check
-    if aws sts get-caller-identity >/dev/null 2>&1; then
+    # Quick auth check and cache account info
+    local caller_info=$(aws sts get-caller-identity --output text 2>/dev/null)
+    if [[ $? -eq 0 && -n "$caller_info" ]]; then
         gum style --foreground 86 "✅ AWS authentication valid"
+        
+        # Cache account info for other commands to use
+        local account_id=$(echo "$caller_info" | awk '{print $1}')
+        if [[ -n "$account_id" ]]; then
+            local region="${AWS_REGION:-${AWS_DEFAULT_REGION}}"
+            if [[ -z "$region" ]]; then
+                region=$(aws configure get region --profile "$AWS_PROFILE" 2>/dev/null)
+            fi
+            if [[ -n "$region" ]]; then
+                local cache_key="aws_account_info:${AWS_PROFILE}"
+                skate set "${cache_key}@__mlnj_cde" "$account_id $region" 2>/dev/null
+            fi
+        fi
+        
         return 0
     fi
     
@@ -37,9 +52,24 @@ __mlnj_cde_aws_ensure_auth() {
         return 1
     fi
     
-    # Verify auth worked
-    if aws sts get-caller-identity >/dev/null 2>&1; then
+    # Verify auth worked and cache account info
+    local caller_info=$(aws sts get-caller-identity --output text 2>/dev/null)
+    if [[ $? -eq 0 && -n "$caller_info" ]]; then
         gum style --foreground 86 "✅ AWS authentication successful"
+        
+        # Cache account info for other commands to use
+        local account_id=$(echo "$caller_info" | awk '{print $1}')
+        if [[ -n "$account_id" ]]; then
+            local region="${AWS_REGION:-${AWS_DEFAULT_REGION}}"
+            if [[ -z "$region" ]]; then
+                region=$(aws configure get region --profile "$AWS_PROFILE" 2>/dev/null)
+            fi
+            if [[ -n "$region" ]]; then
+                local cache_key="aws_account_info:${AWS_PROFILE}"
+                skate set "${cache_key}@__mlnj_cde" "$account_id $region" 2>/dev/null
+            fi
+        fi
+        
         return 0
     else
         gum style --foreground 196 "❌ AWS authentication failed"
