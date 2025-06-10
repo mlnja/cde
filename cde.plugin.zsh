@@ -181,13 +181,18 @@ __mlnj_cde_update() {
     local git_exit_code=$?
     
     if [[ $git_exit_code -eq 0 ]]; then
-        # Success - show only the commit range line
-        local commit_range=$(echo "$git_output" | grep -E '[a-f0-9]{7,}\.\.[a-f0-9]{7,}.*->.*origin/main')
-        if [[ -n "$commit_range" ]]; then
-            echo "$commit_range"
+        # Success - check if there were updates or already up to date
+        if echo "$git_output" | grep -q "Already up to date"; then
+            gum style --foreground 86 "✅ CDE plugin is already up to date!"
+        else
+            # Show only the commit range line if there were updates
+            local commit_range=$(echo "$git_output" | grep -E '[a-f0-9]{7,}\.\.[a-f0-9]{7,}.*->.*origin/main')
+            if [[ -n "$commit_range" ]]; then
+                echo "$commit_range"
+            fi
+            gum style --foreground 86 "✅ CDE plugin updated successfully!"
+            gum style --foreground 214 "🔄 Reload your shell: source ~/.zshrc"
         fi
-        gum style --foreground 86 "✅ CDE plugin updated successfully!"
-        gum style --foreground 214 "🔄 Reload your shell: source ~/.zshrc"
     else
         # Error - show full output
         echo "$git_output"
