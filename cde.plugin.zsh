@@ -175,10 +175,22 @@ __mlnj_cde_update() {
     gum style --foreground 86 "🔄 Updating CDE plugin..."
     
     cd "$plugin_dir"
-    if git pull origin main; then
+    
+    # Capture git pull output
+    local git_output=$(git pull origin main 2>&1)
+    local git_exit_code=$?
+    
+    if [[ $git_exit_code -eq 0 ]]; then
+        # Success - show only the commit range line
+        local commit_range=$(echo "$git_output" | grep -E '[a-f0-9]{7,}\.\.[a-f0-9]{7,}.*->.*origin/main')
+        if [[ -n "$commit_range" ]]; then
+            echo "$commit_range"
+        fi
         gum style --foreground 86 "✅ CDE plugin updated successfully!"
         gum style --foreground 214 "🔄 Reload your shell: source ~/.zshrc"
     else
+        # Error - show full output
+        echo "$git_output"
         gum style --foreground 196 "❌ Failed to update CDE plugin"
         return 1
     fi
