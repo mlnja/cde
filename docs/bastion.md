@@ -17,6 +17,7 @@ cde.tun
 - **Detached Sessions**: Tunnels run in background tmux sessions
 - **Log Management**: View tunnel logs and manage connections
 - **Auto-discovery**: Automatically finds bastion instances tagged with `Bastion=true`
+- **Bulk Cleanup**: Clean all active tunnel sessions with `clean` command
 
 ## Configuration
 
@@ -62,6 +63,13 @@ bastion_targets:
 
 ### Session Names
 Tunnels use standardized session names: `__mlnj_cde_tun_{profile}_{target_name}`
+
+### Cleaning All Tunnels
+Use `cde.tun clean` to:
+- Find all active tunnel sessions across all profiles
+- Display summary of running tunnels
+- Prompt for confirmation before cleanup
+- Kill all tunnel sessions and remove log files
 
 ## Use Cases
 

@@ -154,7 +154,7 @@ __mlnj_cde_help() {
     echo "Standalone commands:"
     echo "  cde.p                    - Select cloud profile"
     echo "  cde.ssm [refresh|show]   - Connect to cloud instances"
-    echo "  cde.tun                  - Connect via bastion tunnel"
+    echo "  cde.tun [clean]          - Connect via bastion tunnel"
     echo "  cde.cr login [region]    - Login to ECR Docker registry"
 }
 

@@ -5,6 +5,18 @@
 _cde_bastion() {
     local config_file="$HOME/.cde/config.yml"
     
+    # Handle subcommands
+    case "$1" in
+        "clean")
+            _cde_clean_all_tunnels
+            return $?
+            ;;
+        "help"|"-h"|"--help")
+            _cde_bastion_help
+            return 0
+            ;;
+    esac
+    
     # Check if config file exists
     if [[ ! -f "$config_file" ]]; then
         gum style --foreground 196 "❌ Config file not found: $config_file"
@@ -165,6 +177,59 @@ _cde_start_new_tunnel() {
     gum style --foreground 214 "💡 Use 'cde.tun' again to view logs or stop the tunnel"
 }
 
+# Clean all tunnel sessions across all profiles
+_cde_clean_all_tunnels() {
+    gum style --foreground 214 "🔍 Searching for active tunnel sessions..."
+    
+    # Find all tmux sessions that match the tunnel naming pattern
+    local tunnel_sessions=()
+    while IFS= read -r session; do
+        if [[ "$session" =~ ^__mlnj_cde_tun_ ]]; then
+            tunnel_sessions+=("$session")
+        fi
+    done <<< "$(tmux list-sessions -F '#{session_name}' 2>/dev/null)"
+    
+    if [[ ${#tunnel_sessions[@]} -eq 0 ]]; then
+        gum style --foreground 86 "✅ No active tunnel sessions found"
+        return 0
+    fi
+    
+    gum style --foreground 214 "🚇 Found ${#tunnel_sessions[@]} active tunnel session(s):"
+    for session in "${tunnel_sessions[@]}"; do
+        # Extract profile and target from session name
+        local session_info="${session#__mlnj_cde_tun_}"
+        local profile="${session_info%%_*}"
+        local target="${session_info#*_}"
+        echo "  • $profile → $target"
+    done
+    
+    echo ""
+    local confirm=$(echo -e "Yes\nNo" | gum choose --header "Kill all ${#tunnel_sessions[@]} tunnel sessions?")
+    
+    if [[ "$confirm" != "Yes" ]]; then
+        gum style --foreground 214 "ℹ️  Operation cancelled"
+        return 0
+    fi
+    
+    # Kill all tunnel sessions and clean up log files
+    local killed_count=0
+    for session in "${tunnel_sessions[@]}"; do
+        gum style --foreground 214 "🔴 Stopping: $session"
+        if tmux kill-session -t "$session" 2>/dev/null; then
+            ((killed_count++))
+            # Clean up log file
+            local log_file="/tmp/${session}.log"
+            [[ -f "$log_file" ]] && rm "$log_file"
+        fi
+    done
+    
+    if [[ $killed_count -eq ${#tunnel_sessions[@]} ]]; then
+        gum style --foreground 86 "✅ Successfully cleaned all $killed_count tunnel sessions"
+    else
+        gum style --foreground 214 "⚠️  Cleaned $killed_count of ${#tunnel_sessions[@]} tunnel sessions"
+    fi
+}
+
 # Find bastion instance with Bastion=true tag
 _cde_find_bastion_instance() {
     local profile="$1"
@@ -216,4 +281,28 @@ _cde_find_bastion_instance() {
     done <<< "$cached_data"
     
     echo "$bastion_id"
+}
+
+# Help function for bastion command
+_cde_bastion_help() {
+    gum style \
+        --foreground 86 --border-foreground 86 --border double \
+        --align center --width 60 --margin "1 2" --padding "2 4" \
+        'CDE Bastion Tunnel' 'Secure port forwarding through bastion hosts'
+
+    echo ""
+    echo "Usage:"
+    echo "  cde.tun                  - Interactive tunnel management"
+    echo "  cde.tun clean            - Stop all active tunnel sessions"
+    echo "  cde.tun help             - Show this help"
+    echo ""
+    echo "Features:"
+    echo "  • Select from configured bastion targets"
+    echo "  • Real-time tunnel status display"
+    echo "  • Background tmux sessions for persistence"
+    echo "  • View logs and manage connections"
+    echo "  • Auto-discovery of bastion instances"
+    echo ""
+    echo "Configuration: ~/.cde/config.yml"
+    echo "Documentation: See docs/bastion.md"
 }
