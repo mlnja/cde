@@ -172,7 +172,81 @@ _cde_start_new_tunnel() {
     # Fallback: Add hook to immediately detach any attach attempts
     tmux set-hook -t "$session_name" client-attached 'detach-client'
     
-    gum style --foreground 86 "✅ Tunnel started in detached session: $session_name"
+    # Monitor tunnel startup for a few seconds to detect immediate failures
+    gum style --foreground 214 "⏳ Monitoring tunnel startup..."
+    
+    local startup_success=false
+    local check_attempts=0
+    local max_startup_checks=10
+    
+    while [[ $check_attempts -lt $max_startup_checks ]]; do
+        sleep 1
+        ((check_attempts++))
+        
+        # Check if tmux session still exists
+        if ! tmux has-session -t "$session_name" 2>/dev/null; then
+            gum style --foreground 196 "❌ Tunnel session terminated unexpectedly"
+            return 1
+        fi
+        
+        # Check log file for connection status
+        if [[ -f "$log_file" ]]; then
+            if grep -q "TargetNotConnected" "$log_file"; then
+                gum style --foreground 214 "🔍 Bastion instance not connected - likely terminated"
+                
+                # Try to find new bastion instance
+                gum style --foreground 214 "🔄 Searching for updated bastion..."
+                _cde_ssm refresh >/dev/null 2>&1
+                
+                local new_bastion=$(_cde_find_bastion_instance "$current_profile")
+                
+                if [[ -n "$new_bastion" && "$new_bastion" != "$bastion_instance" ]]; then
+                    gum style --foreground 86 "✅ Found new bastion: $new_bastion"
+                    gum style --foreground 214 "🔄 Restarting tunnel with updated bastion..."
+                    
+                    # Kill the failed session
+                    tmux kill-session -t "$session_name" 2>/dev/null
+                    [[ -f "$log_file" ]] && rm "$log_file"
+                    
+                    # Start new session with updated bastion
+                    tmux new-session -d -s "$session_name" -e AWS_PROFILE="$current_profile" \
+                        "aws ssm start-session \
+                        --target '$new_bastion' \
+                        --document-name AWS-StartPortForwardingSessionToRemoteHost \
+                        --parameters 'host=\"$target_host\",portNumber=\"$remote_port\",localPortNumber=\"$local_port\"' \
+                        2>&1 | tee '$log_file'"
+                    
+                    tmux set-hook -t "$session_name" client-attached 'detach-client'
+                    
+                    # Reset check counter for new session
+                    check_attempts=0
+                    continue
+                else
+                    gum style --foreground 196 "❌ No alternative bastion instance found"
+                    tmux kill-session -t "$session_name" 2>/dev/null
+                    [[ -f "$log_file" ]] && rm "$log_file"
+                    return 1
+                fi
+            elif grep -q "Starting session with SessionId" "$log_file" || grep -q "Port forwarding started" "$log_file"; then
+                startup_success=true
+                break
+            elif grep -q "An error occurred" "$log_file"; then
+                gum style --foreground 196 "❌ Tunnel startup failed with error:"
+                tail -3 "$log_file" | gum style --foreground 196
+                tmux kill-session -t "$session_name" 2>/dev/null
+                [[ -f "$log_file" ]] && rm "$log_file"
+                return 1
+            fi
+        fi
+    done
+    
+    if [[ "$startup_success" == "true" ]]; then
+        gum style --foreground 86 "✅ Tunnel started successfully in detached session: $session_name"
+    else
+        gum style --foreground 214 "⚠️  Tunnel started but connection status unclear"
+        gum style --foreground 214 "💡 Check logs if experiencing issues"
+    fi
+    
     echo ""
     gum style --foreground 214 "💡 Use 'cde.tun' again to view logs or stop the tunnel"
 }
