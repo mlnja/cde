@@ -196,7 +196,23 @@ _cde_start_new_tunnel() {
                 
                 # Try to find new bastion instance
                 gum style --foreground 214 "🔄 Searching for updated bastion..."
-                _cde_ssm refresh >/dev/null 2>&1
+                
+                # Load SSM command if not already loaded
+                if ! declare -f _cde_ssm >/dev/null; then
+                    local plugin_dir=$(__mlnj_cde_get_plugin_dir)
+                    local ssm_command="$plugin_dir/ssm/command.zsh"
+                    if [[ -f "$ssm_command" ]]; then
+                        source "$ssm_command"
+                    fi
+                fi
+                
+                # Refresh SSM instances (show errors to user)
+                if ! _cde_ssm refresh; then
+                    gum style --foreground 196 "❌ Failed to refresh SSM instances"
+                    tmux kill-session -t "$session_name" 2>/dev/null
+                    [[ -f "$log_file" ]] && rm "$log_file"
+                    return 1
+                fi
                 
                 local new_bastion=$(_cde_find_bastion_instance "$current_profile")
                 
