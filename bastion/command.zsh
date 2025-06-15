@@ -345,7 +345,10 @@ _cde_find_bastion_instance() {
         fi
         
         # Run refresh
-        _cde_ssm refresh >&2
+        if ! _cde_ssm refresh >&2; then
+            gum style --foreground 196 "❌ Failed to refresh SSM instances" >&2
+            return 1
+        fi
         
         # Try to get cached data again
         cached_data=$(skate get "${cache_key}@__mlnj_cde" 2>/dev/null)
