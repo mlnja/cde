@@ -81,14 +81,37 @@ __mlnj_cde_ssm_refresh() {
         fi
     fi
     
-    # Cache the instances
-    if [[ ${#instances[@]} -gt 0 ]]; then
-        local cache_data=$(printf '%s\n' "${instances[@]}")
+    # Validate JSON data before caching
+    local valid_instances=()
+    local invalid_count=0
+    
+    for instance in "${instances[@]}"; do
+        if echo "$instance" | jq empty 2>/dev/null; then
+            valid_instances+=("$instance")
+        else
+            ((invalid_count++))
+        fi
+    done
+    
+    # Only cache if we have valid instances
+    if [[ ${#valid_instances[@]} -gt 0 ]]; then
+        local cache_data=$(printf '%s\n' "${valid_instances[@]}")
         skate set "ssm_instances:${env_key}@__mlnj_cde" "$cache_data"
-        gum style --foreground 86 "✅ Found and cached ${#instances[@]} instances"
+        gum style --foreground 86 "✅ Found and cached ${#valid_instances[@]} instances"
+        
+        if [[ $invalid_count -gt 0 ]]; then
+            gum style --foreground 214 "⚠️  Skipped $invalid_count instances with invalid JSON"
+        fi
     else
-        skate delete "ssm_instances:${env_key}@__mlnj_cde" 2>/dev/null
-        gum style --foreground 214 "⚠️  No SSM instances found for this environment"
+        # Don't update cache if no valid instances found
+        if [[ ${#instances[@]} -gt 0 ]]; then
+            gum style --foreground 196 "❌ All ${#instances[@]} instances had invalid JSON format"
+            gum style --foreground 214 "💡 Cache not updated - previous data preserved"
+            return 1
+        else
+            skate delete "ssm_instances:${env_key}@__mlnj_cde" 2>/dev/null
+            gum style --foreground 214 "⚠️  No SSM instances found for this environment"
+        fi
     fi
 }
 
