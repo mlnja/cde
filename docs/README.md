@@ -196,7 +196,7 @@ Extensible architecture for cloud providers:
 
 ```bash
 # Install CDE plugin
-curl -fsSL https://raw.githubusercontent.com/mlops-ninja/cde/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/mlnja/cde/main/install.sh | bash
 
 # Add to oh-my-zsh plugins
 # Edit ~/.zshrc

@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # CDE - Cloud DevEx Oh My Zsh Plugin Installer
-# Usage: curl -fsSL https://raw.githubusercontent.com/mlops-ninja/cde/main/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/mlnja/cde/main/install.sh | bash
 
 set -e
 
 PLUGIN_NAME="cde"
 PLUGIN_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/$PLUGIN_NAME"
-REPO_URL="https://github.com/mlops-ninja/cde.git"
+REPO_URL="https://github.com/mlnja/cde.git"
 
 echo "🌥️  Installing CDE (Cloud DevEx) plugin..."
 
