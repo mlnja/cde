@@ -186,7 +186,53 @@ _cde_start_new_tunnel() {
         # Check if tmux session still exists
         if ! tmux has-session -t "$session_name" 2>/dev/null; then
             gum style --foreground 196 "❌ Tunnel session terminated unexpectedly"
-            return 1
+            
+            # Check if this is due to bastion instance being invalid
+            gum style --foreground 214 "🔍 Checking if bastion instance is valid..."
+            
+            # Load SSM command if not already loaded
+            if ! declare -f _cde_ssm >/dev/null; then
+                local plugin_dir=$(__mlnj_cde_get_plugin_dir)
+                local ssm_command="$plugin_dir/ssm/command.zsh"
+                if [[ -f "$ssm_command" ]]; then
+                    source "$ssm_command"
+                fi
+            fi
+            
+            # Refresh SSM instances to get updated bastion list
+            gum style --foreground 214 "🔄 Refreshing bastion instances..."
+            if _cde_ssm refresh; then
+                local new_bastion=$(_cde_find_bastion_instance "$current_profile")
+                
+                if [[ -n "$new_bastion" && "$new_bastion" != "$bastion_instance" ]]; then
+                    gum style --foreground 86 "✅ Found new bastion: $new_bastion"
+                    gum style --foreground 214 "🔄 Restarting tunnel with updated bastion..."
+                    
+                    # Clean up log file
+                    [[ -f "$log_file" ]] && rm "$log_file"
+                    
+                    # Start new session with updated bastion
+                    tmux new-session -d -s "$session_name" -e AWS_PROFILE="$current_profile" \
+                        "aws ssm start-session \
+                        --target '$new_bastion' \
+                        --document-name AWS-StartPortForwardingSessionToRemoteHost \
+                        --parameters 'host=\"$target_host\",portNumber=\"$remote_port\",localPortNumber=\"$local_port\"' \
+                        2>&1 | tee '$log_file'"
+                    
+                    tmux set-hook -t "$session_name" client-attached 'detach-client'
+                    
+                    # Update bastion_instance variable and reset check counter
+                    bastion_instance="$new_bastion"
+                    check_attempts=0
+                    continue
+                else
+                    gum style --foreground 196 "❌ No alternative bastion instance found"
+                    return 1
+                fi
+            else
+                gum style --foreground 196 "❌ Failed to refresh SSM instances"
+                return 1
+            fi
         fi
         
         # Check log file for connection status
