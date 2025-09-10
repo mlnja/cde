@@ -1,18 +1,6 @@
 # CDE - Cloud DevEx Oh My Zsh Plugin
 # A collection of cloud utilities with beautiful UI
 
-# Check if dependencies are available
-if ! command -v gum >/dev/null 2>&1; then
-    echo "⚠️  gum not found. Install with: go install github.com/charmbracelet/gum@latest"
-fi
-
-if ! command -v skate >/dev/null 2>&1; then
-    echo "⚠️  skate not found. Install with: go install github.com/charmbracelet/skate@latest"
-fi
-
-if ! command -v yq >/dev/null 2>&1; then
-    echo "⚠️  yq not found. Install with: go install github.com/mikefarah/yq/v4@latest"
-fi
 
 # Store CDE directory when script loads
 if [[ -n "${(%):-%N}" ]]; then
@@ -133,11 +121,89 @@ cde() {
         "update")
             __mlnj_cde_update
             ;;
+        "doctor")
+            __mlnj_cde_doctor
+            ;;
         *)
             echo "Unknown command: $1"
             __mlnj_cde_help
             ;;
     esac
+}
+
+# Doctor function to check dependencies
+__mlnj_cde_doctor() {
+    echo "🩺 CDE Doctor - Checking dependencies..."
+    echo ""
+    
+    local all_good=true
+    
+    # Check gum
+    if command -v gum >/dev/null 2>&1; then
+        echo "✅ gum: $(gum --version | head -n1)"
+    else
+        echo "❌ gum: not found"
+        echo "   Install with: go install github.com/charmbracelet/gum@latest"
+        all_good=false
+    fi
+    
+    # Check skate
+    if command -v skate >/dev/null 2>&1; then
+        echo "✅ skate: $(skate --version 2>/dev/null || echo "installed")"
+    else
+        echo "❌ skate: not found"
+        echo "   Install with: go install github.com/charmbracelet/skate@latest"
+        all_good=false
+    fi
+    
+    # Check yq
+    if command -v yq >/dev/null 2>&1; then
+        echo "✅ yq: $(yq --version | head -n1)"
+    else
+        echo "❌ yq: not found"
+        echo "   Install with: go install github.com/mikefarah/yq/v4@latest"
+        all_good=false
+    fi
+    
+    # Check tmux
+    if command -v tmux >/dev/null 2>&1; then
+        echo "✅ tmux: $(tmux -V)"
+    else
+        echo "❌ tmux: not found"
+        echo "   Install with: brew install tmux (macOS) or apt install tmux (Linux)"
+        all_good=false
+    fi
+    
+    # Check AWS CLI
+    if command -v aws >/dev/null 2>&1; then
+        echo "✅ aws: $(aws --version | head -n1)"
+    else
+        echo "⚠️  aws: not found (optional for AWS features)"
+        echo "   Install with: https://aws.amazon.com/cli/"
+    fi
+    
+    # Check gcloud CLI
+    if command -v gcloud >/dev/null 2>&1; then
+        echo "✅ gcloud: $(gcloud version --format="value(Google Cloud SDK)" 2>/dev/null | head -n1)"
+    else
+        echo "⚠️  gcloud: not found (optional for GCP features)"
+        echo "   Install with: https://cloud.google.com/sdk/docs/install"
+    fi
+    
+    # Check az CLI
+    if command -v az >/dev/null 2>&1; then
+        echo "✅ az: $(az version --output tsv --query '"azure-cli"' 2>/dev/null)"
+    else
+        echo "⚠️  az: not found (optional for Azure features)"
+        echo "   Install with: https://docs.microsoft.com/en-us/cli/azure/install-azure-cli"
+    fi
+    
+    echo ""
+    if [[ $all_good == true ]]; then
+        echo "🎉 All required dependencies are installed!"
+    else
+        echo "⚠️  Some required dependencies are missing. Please install them to use all CDE features."
+    fi
 }
 
 # Help function
@@ -151,6 +217,7 @@ __mlnj_cde_help() {
     echo "Available commands:"
     echo "  cde cache                - Show all cached data"
     echo "  cde cache.clean          - Clean all cached data"
+    echo "  cde doctor               - Check dependencies"
     echo "  cde update               - Update CDE plugin"
     echo "  cde help                 - Show this help"
     echo ""

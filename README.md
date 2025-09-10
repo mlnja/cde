@@ -65,6 +65,7 @@ source ~/.zshenv
 
 ```bash
 cde help                    # Show help
+cde doctor                  # Check dependencies and installation
 cde cache                   # Show cached data
 cde cache.clean            # Clean all cached data  
 cde update                 # Update CDE to latest version
@@ -124,14 +125,19 @@ This will pull the latest changes from the repository and reload the functions.
 
 ## Troubleshooting
 
+### Quick Diagnosis
+```bash
+cde doctor                  # Check all dependencies and installation status
+```
+
 ### Command not found errors
 - Ensure CDE is properly sourced in your shell config (~/.zshenv)
 - Verify Go bin directory is in your PATH: `echo $PATH | grep go/bin`
 - Reload your shell: `source ~/.zshenv`
 
 ### Missing dependencies
+- Run `cde doctor` to see what's missing
 - Install missing tools: `go install github.com/charmbracelet/gum@latest`
-- Check installation: `command -v gum`
 
 ### Cloud CLI issues
 - Ensure cloud CLIs are installed and configured
