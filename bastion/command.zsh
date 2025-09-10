@@ -198,8 +198,35 @@ _cde_start_new_tunnel() {
     local bastion_instance=$(_cde_find_bastion_instance "$current_profile")
     
     if [[ -z "$bastion_instance" ]]; then
-        gum style --foreground 196 "❌ No bastion instance found with tag Bastion=true"
-        return 1
+        gum style --foreground 214 "⚠️  No bastion instance found, refreshing SSM instances..."
+        
+        # Load SSM command if not already loaded
+        if ! declare -f _cde_ssm >/dev/null; then
+            local cde_dir=$(__mlnj_cde_get_dir)
+            local ssm_command="$cde_dir/ssm/command.zsh"
+            if [[ -f "$ssm_command" ]]; then
+                source "$ssm_command"
+            else
+                gum style --foreground 196 "❌ SSM command not found"
+                return 1
+            fi
+        fi
+        
+        # Auto-refresh SSM instances once
+        if _cde_ssm refresh; then
+            # Try to find bastion again after refresh
+            bastion_instance=$(_cde_find_bastion_instance "$current_profile")
+            
+            if [[ -n "$bastion_instance" ]]; then
+                gum style --foreground 86 "✅ Found bastion after refresh: $bastion_instance"
+            else
+                gum style --foreground 196 "❌ No bastion instance found with tag Bastion=true even after refresh"
+                return 1
+            fi
+        else
+            gum style --foreground 196 "❌ Failed to refresh SSM instances"
+            return 1
+        fi
     fi
     
     gum style --foreground 86 "🚇 Found bastion: $bastion_instance"
