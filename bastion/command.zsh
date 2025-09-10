@@ -27,17 +27,7 @@ _cde_bastion() {
     # Get current AWS profile
     local current_profile="${AWS_PROFILE:-default}"
     
-    # Get targets for current profile using yq
-    local targets=$(yq eval ".bastion_targets[] | select(.profile == \"$current_profile\") | .name" "$config_file" 2>/dev/null)
-    
-    if [[ -z "$targets" ]]; then
-        gum style --foreground 214 "⚠️  No bastion targets found for profile: $current_profile"
-        echo "Available profiles in config:"
-        yq eval '.bastion_targets[].profile' "$config_file" 2>/dev/null | sort -u
-        return 1
-    fi
-    
-    # Show tunnel status table
+    # Always show tunnel status table (it will handle the case when current profile has no targets)
     _cde_show_tunnel_table "$current_profile" "$config_file"
 }
 
@@ -46,54 +36,108 @@ _cde_show_tunnel_table() {
     local current_profile="$1"
     local config_file="$2"
     
-    # Create display data array
+    # Create display data arrays
     local display_lines=()
+    local tunnel_profiles=()  # Parallel array to track profile for each line
+    local tunnel_targets=()   # Parallel array to track target name for each line
     
-    # Get all targets for current profile
+    # Get all active sessions
+    local all_active_sessions=()
+    while IFS= read -r session; do
+        if [[ "$session" =~ ^__mlnj_cde_tun_(.+)_(.+)$ ]]; then
+            local session_profile="${match[1]}"
+            local session_target="${match[2]}"
+            all_active_sessions+=("$session_profile:$session_target")
+        fi
+    done <<< "$(tmux list-sessions -F '#{session_name}' 2>/dev/null)"
+    
+    # List 1: All tunnels (active + inactive) from current profile
     while IFS= read -r target_name; do
         if [[ -n "$target_name" ]]; then
-            # Get target details
-            local target_host=$(yq eval ".bastion_targets[] | select(.profile == \"$current_profile\" and .name == \"$target_name\") | .host" "$config_file")
-            local target_port=$(yq eval ".bastion_targets[] | select(.profile == \"$current_profile\" and .name == \"$target_name\") | .port" "$config_file")
+            # Check if this target is active
+            local is_active=false
+            for session_info in "${all_active_sessions[@]}"; do
+                local session_profile="${session_info%:*}"
+                local session_target="${session_info#*:}"
+                if [[ "$session_profile" == "$current_profile" && "$session_target" == "$target_name" ]]; then
+                    is_active=true
+                    break
+                fi
+            done
             
-            # Check if tmux session exists
-            local session_name="__mlnj_cde_tun_${current_profile}_${target_name}"
-            local status_icon="❌"
-            local status_text="Stopped"
-            if tmux has-session -t "$session_name" 2>/dev/null; then
-                status_icon="✅"
-                status_text="Running"
+            # Add to display
+            if [[ "$is_active" == "true" ]]; then
+                display_lines+=("✅ Running | 🚇 $target_name")
+            else
+                display_lines+=("❌ Stopped | 🚇 $target_name")
             fi
-            
-            display_lines+=("$status_icon $status_text | 🚇 $target_name")
+            tunnel_profiles+=("$current_profile")
+            tunnel_targets+=("$target_name")
         fi
     done <<< "$(yq eval ".bastion_targets[] | select(.profile == \"$current_profile\") | .name" "$config_file" 2>/dev/null)"
     
+    # List 2: Active tunnels from other profiles (excluding current profile)
+    for session_info in "${all_active_sessions[@]}"; do
+        local session_profile="${session_info%:*}"
+        local session_target="${session_info#*:}"
+        
+        # Skip if this is from current profile (already handled in List 1)
+        if [[ "$session_profile" == "$current_profile" ]]; then
+            continue
+        fi
+        
+        # Verify this target exists in config (it might have been removed)
+        local target_exists=$(yq eval ".bastion_targets[] | select(.profile == \"$session_profile\" and .name == \"$session_target\") | .name" "$config_file" 2>/dev/null)
+        
+        if [[ -n "$target_exists" ]]; then
+            display_lines+=("✅ Running | 🚇 $session_target ($session_profile)")
+            tunnel_profiles+=("$session_profile")
+            tunnel_targets+=("$session_target")
+        fi
+    done
+    
     if [[ ${#display_lines[@]} -eq 0 ]]; then
+        # No active tunnels from any profile and no targets for current profile
+        local targets=$(yq eval ".bastion_targets[] | select(.profile == \"$current_profile\") | .name" "$config_file" 2>/dev/null)
+        if [[ -z "$targets" ]]; then
+            gum style --foreground 214 "⚠️  No bastion targets found for profile: $current_profile"
+            echo "Available profiles in config:"
+            yq eval '.bastion_targets[].profile' "$config_file" 2>/dev/null | sort -u
+        fi
         return 0
     fi
     
     # Interactive selection with filter
-    gum style --foreground 86 "🚇 Select tunnel ($current_profile):"
+    gum style --foreground 86 "🚇 Select tunnel:"
     local selected=$(printf '%s\n' "${display_lines[@]}" | gum filter --placeholder="Type to filter tunnels..." --height=10)
     
     if [[ -z "$selected" ]]; then
         return 0
     fi
     
-    # Extract target name from selected line
-    local chosen_target=$(echo "$selected" | cut -d'|' -f2 | sed 's/🚇 //' | xargs)
+    # Find the index of the selected line
+    local selected_index=-1
+    for ((i=1; i<=${#display_lines[@]}; i++)); do
+        if [[ "${display_lines[i]}" == "$selected" ]]; then
+            selected_index=$i
+            break
+        fi
+    done
     
-    if [[ -z "$chosen_target" ]]; then
+    if [[ $selected_index -eq -1 ]]; then
         return 0
     fi
     
+    # Get the profile and target from the parallel arrays using the index
+    local chosen_profile="${tunnel_profiles[selected_index]}"
+    local chosen_target="${tunnel_targets[selected_index]}"
+    
     # Check if tunnel is already running
-    local session_name="__mlnj_cde_tun_${current_profile}_${chosen_target}"
+    local session_name="__mlnj_cde_tun_${chosen_profile}_${chosen_target}"
     if tmux has-session -t "$session_name" 2>/dev/null; then
         _cde_manage_existing_tunnel "$chosen_target" "$session_name"
     else
-        _cde_start_new_tunnel "$chosen_target" "$current_profile" "$config_file"
+        _cde_start_new_tunnel "$chosen_target" "$chosen_profile" "$config_file"
     fi
 }
 
@@ -134,6 +178,15 @@ _cde_start_new_tunnel() {
     # Get target details
     local target_host=$(yq eval ".bastion_targets[] | select(.profile == \"$current_profile\" and .name == \"$target_name\") | .host" "$config_file")
     local target_port=$(yq eval ".bastion_targets[] | select(.profile == \"$current_profile\" and .name == \"$target_name\") | .port" "$config_file")
+    
+    
+    # Check if target details were found
+    if [[ -z "$target_host" || -z "$target_port" ]]; then
+        gum style --foreground 196 "❌ Target '$target_name' not found in config for profile '$current_profile'"
+        echo "Available targets for this profile:"
+        yq eval ".bastion_targets[] | select(.profile == \"$current_profile\") | .name + \" -> \" + .host + \":\" + .port" "$config_file" 2>/dev/null
+        return 1
+    fi
     
     # Parse port (format: remote:local)
     local remote_port="${target_port%:*}"
