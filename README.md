@@ -33,9 +33,7 @@ go install github.com/charmbracelet/skate@latest
 go install github.com/mikefarah/yq/v4@latest
 ```
 
-3. Add to your shell configuration:
-
-**For Zsh** (~/.zshrc):
+3. Add to your shell configuration (~/.zshenv):
 ```bash
 # Add CDE to your shell
 source ~/.local/share/cde/cde.zsh
@@ -44,18 +42,9 @@ source ~/.local/share/cde/cde.zsh
 export PATH=$PATH:$HOME/go/bin
 ```
 
-**For Bash** (~/.bashrc):
-```bash
-# Add CDE to your shell  
-source ~/.local/share/cde/cde.zsh
-
-# Make sure Go bin is in PATH
-export PATH=$PATH:$HOME/go/bin
-```
-
 4. Reload your shell:
 ```bash
-source ~/.zshrc  # or source ~/.bashrc
+source ~/.zshenv
 ```
 
 ## Requirements
@@ -136,9 +125,9 @@ This will pull the latest changes from the repository and reload the functions.
 ## Troubleshooting
 
 ### Command not found errors
-- Ensure CDE is properly sourced in your shell config
+- Ensure CDE is properly sourced in your shell config (~/.zshenv)
 - Verify Go bin directory is in your PATH: `echo $PATH | grep go/bin`
-- Reload your shell: `source ~/.zshrc`
+- Reload your shell: `source ~/.zshenv`
 
 ### Missing dependencies
 - Install missing tools: `go install github.com/charmbracelet/gum@latest`

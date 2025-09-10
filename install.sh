@@ -53,12 +53,12 @@ go install github.com/mikefarah/yq/v4@latest
 # Ensure Go bin is in PATH
 if [[ ":$PATH:" != *":$HOME/go/bin:"* ]]; then
     echo "⚠️  Make sure $HOME/go/bin is in your PATH"
-    echo "   Add this to your ~/.zshrc: export PATH=\$PATH:\$HOME/go/bin"
+    echo "   Add this to your ~/.zshenv: export PATH=\$PATH:\$HOME/go/bin"
 fi
 
 echo "✅ CDE installed!"
 echo ""
-echo "📝 To activate, add this line to your ~/.zshrc:"
+echo "📝 To activate, add this line to your ~/.zshenv:"
 echo "   source ~/.local/share/cde/cde.zsh"
 echo ""
-echo "🔄 Then reload your shell: source ~/.zshrc"
+echo "🔄 Then reload your shell: source ~/.zshenv"
