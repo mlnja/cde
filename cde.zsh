@@ -14,27 +14,30 @@ if ! command -v yq >/dev/null 2>&1; then
     echo "⚠️  yq not found. Install with: go install github.com/mikefarah/yq/v4@latest"
 fi
 
-# Store plugin directory when plugin loads
+# Store CDE directory when script loads
 if [[ -n "${(%):-%N}" ]]; then
     # Get directory of current script file during load
-    __MLNJ_CDE_PLUGIN_DIR="$(dirname "${(%):-%N}")"
+    __MLNJ_CDE_DIR="$(dirname "${(%):-%N}")"
+elif [[ -d "$HOME/.local/share/cde" ]]; then
+    # Standard location
+    __MLNJ_CDE_DIR="$HOME/.local/share/cde"
 elif [[ -d "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/cde" ]]; then
-    # Fallback to oh-my-zsh directory
-    __MLNJ_CDE_PLUGIN_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/cde"
+    # Fallback to oh-my-zsh directory for backward compatibility
+    __MLNJ_CDE_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/cde"
 else
     # Last resort - current directory
-    __MLNJ_CDE_PLUGIN_DIR="."
+    __MLNJ_CDE_DIR="."
 fi
 
-# Get plugin directory helper
-__mlnj_cde_get_plugin_dir() {
-    echo "$__MLNJ_CDE_PLUGIN_DIR"
+# Get CDE directory helper
+__mlnj_cde_get_dir() {
+    echo "$__MLNJ_CDE_DIR"
 }
 
 # Lazy load p command when needed
 __mlnj_cde_load_p_command() {
-    local plugin_dir=$(__mlnj_cde_get_plugin_dir)
-    local p_command="$plugin_dir/p/command.zsh"
+    local cde_dir=$(__mlnj_cde_get_dir)
+    local p_command="$cde_dir/p/command.zsh"
     
     if [[ -f "$p_command" ]]; then
         source "$p_command"
@@ -47,8 +50,8 @@ __mlnj_cde_load_p_command() {
 
 # Lazy load ssm command when needed
 __mlnj_cde_load_ssm_command() {
-    local plugin_dir=$(__mlnj_cde_get_plugin_dir)
-    local ssm_command="$plugin_dir/ssm/command.zsh"
+    local cde_dir=$(__mlnj_cde_get_dir)
+    local ssm_command="$cde_dir/ssm/command.zsh"
     
     if [[ -f "$ssm_command" ]]; then
         source "$ssm_command"
@@ -61,8 +64,8 @@ __mlnj_cde_load_ssm_command() {
 
 # Lazy load cache command when needed
 __mlnj_cde_load_cache_command() {
-    local plugin_dir=$(__mlnj_cde_get_plugin_dir)
-    local cache_command="$plugin_dir/cache/command.zsh"
+    local cde_dir=$(__mlnj_cde_get_dir)
+    local cache_command="$cde_dir/cache/command.zsh"
     
     if [[ -f "$cache_command" ]]; then
         source "$cache_command"
@@ -75,8 +78,8 @@ __mlnj_cde_load_cache_command() {
 
 # Lazy load bastion command when needed
 __mlnj_cde_load_bastion_command() {
-    local plugin_dir=$(__mlnj_cde_get_plugin_dir)
-    local bastion_command="$plugin_dir/bastion/command.zsh"
+    local cde_dir=$(__mlnj_cde_get_dir)
+    local bastion_command="$cde_dir/bastion/command.zsh"
     
     if [[ -f "$bastion_command" ]]; then
         source "$bastion_command"
@@ -89,8 +92,8 @@ __mlnj_cde_load_bastion_command() {
 
 # Lazy load cr command when needed
 __mlnj_cde_load_cr_command() {
-    local plugin_dir=$(__mlnj_cde_get_plugin_dir)
-    local cr_command="$plugin_dir/cr/command.zsh"
+    local cde_dir=$(__mlnj_cde_get_dir)
+    local cr_command="$cde_dir/cr/command.zsh"
     
     if [[ -f "$cr_command" ]]; then
         source "$cr_command"
@@ -160,21 +163,21 @@ __mlnj_cde_help() {
 
 # Update function
 __mlnj_cde_update() {
-    local plugin_dir="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/cde"
+    local cde_dir=$(__mlnj_cde_get_dir)
     
-    if [[ ! -d "$plugin_dir" ]]; then
-        gum style --foreground 196 "❌ CDE plugin directory not found"
+    if [[ ! -d "$cde_dir" ]]; then
+        gum style --foreground 196 "❌ CDE directory not found: $cde_dir"
         return 1
     fi
     
-    if [[ ! -d "$plugin_dir/.git" ]]; then
-        gum style --foreground 196 "❌ CDE plugin is not a git repository"
+    if [[ ! -d "$cde_dir/.git" ]]; then
+        gum style --foreground 196 "❌ CDE directory is not a git repository"
         return 1
     fi
     
-    gum style --foreground 86 "🔄 Updating CDE plugin..."
+    gum style --foreground 86 "🔄 Updating CDE..."
     
-    cd "$plugin_dir"
+    cd "$cde_dir"
     
     # Capture git pull output
     local git_output=$(git pull origin main 2>&1)
@@ -183,20 +186,20 @@ __mlnj_cde_update() {
     if [[ $git_exit_code -eq 0 ]]; then
         # Success - check if there were updates or already up to date
         if [[ "$git_output" == *"Already up to date"* ]]; then
-            gum style --foreground 86 "✅ CDE plugin is already up to date!"
+            gum style --foreground 86 "✅ CDE is already up to date!"
         else
             # Show only the commit range line if there were updates
             local commit_range=$(echo "$git_output" | grep -E '[a-f0-9]{7,}\.\.[a-f0-9]{7,}.*->.*origin/main')
             if [[ -n "$commit_range" ]]; then
                 echo "$commit_range"
             fi
-            gum style --foreground 86 "✅ CDE plugin updated successfully!"
+            gum style --foreground 86 "✅ CDE updated successfully!"
             gum style --foreground 214 "🔄 Reload your shell: source ~/.zshrc"
         fi
     else
         # Error - show full output
         echo "$git_output"
-        gum style --foreground 196 "❌ Failed to update CDE plugin"
+        gum style --foreground 196 "❌ Failed to update CDE"
         return 1
     fi
 }

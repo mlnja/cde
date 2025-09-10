@@ -1,21 +1,17 @@
 #!/bin/bash
 
-# CDE - Cloud DevEx Oh My Zsh Plugin Installer
+# CDE - Cloud DevEx Installer
 # Usage: curl -fsSL https://raw.githubusercontent.com/mlnja/cde/main/install.sh | bash
 
 set -e
 
-PLUGIN_NAME="cde"
-PLUGIN_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/$PLUGIN_NAME"
+CDE_DIR="$HOME/.local/share/cde"
 REPO_URL="https://github.com/mlnja/cde.git"
 
-echo "🌥️  Installing CDE (Cloud DevEx) plugin..."
+echo "🌥️  Installing CDE (Cloud DevEx)..."
 
-# Check if oh-my-zsh is installed
-if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
-    echo "❌ Oh My Zsh is not installed. Please install it first: https://ohmyz.sh"
-    exit 1
-fi
+# Create .local/share directory if it doesn't exist
+mkdir -p "$HOME/.local/share"
 
 # Check if Git is installed
 if ! command -v git >/dev/null 2>&1; then
@@ -39,13 +35,13 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 # Clone or update the repository
-if [[ -d "$PLUGIN_DIR" ]]; then
-    echo "📥 Updating existing CDE plugin..."
-    cd "$PLUGIN_DIR"
+if [[ -d "$CDE_DIR" ]]; then
+    echo "📥 Updating existing CDE installation..."
+    cd "$CDE_DIR"
     git pull origin main
 else
-    echo "📥 Cloning CDE plugin..."
-    git clone "$REPO_URL" "$PLUGIN_DIR"
+    echo "📥 Cloning CDE..."
+    git clone "$REPO_URL" "$CDE_DIR"
 fi
 
 # Install dependencies via Go
@@ -60,9 +56,9 @@ if [[ ":$PATH:" != *":$HOME/go/bin:"* ]]; then
     echo "   Add this to your ~/.zshrc: export PATH=\$PATH:\$HOME/go/bin"
 fi
 
-echo "✅ CDE plugin installed!"
+echo "✅ CDE installed!"
 echo ""
-echo "📝 To activate, add 'cde' to your plugins in ~/.zshrc:"
-echo "   plugins=(... cde)"
+echo "📝 To activate, add this line to your ~/.zshrc:"
+echo "   source ~/.local/share/cde/cde.zsh"
 echo ""
 echo "🔄 Then reload your shell: source ~/.zshrc"

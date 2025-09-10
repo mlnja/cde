@@ -3,10 +3,10 @@
 
 # Load cloud provider modules for p command
 __mlnj_cde_p_load_providers() {
-    # Use the stored plugin directory from main plugin
-    local plugin_dir="$__MLNJ_CDE_PLUGIN_DIR"
+    # Use the stored CDE directory from main script
+    local cde_dir="$__MLNJ_CDE_DIR"
     
-    local providers_dir="$plugin_dir/p/providers"
+    local providers_dir="$cde_dir/p/providers"
     
     if [[ -d "$providers_dir" ]]; then
         for provider_file in "$providers_dir"/*.zsh; do

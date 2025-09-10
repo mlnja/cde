@@ -192,8 +192,8 @@ _cde_start_new_tunnel() {
             
             # Load SSM command if not already loaded
             if ! declare -f _cde_ssm >/dev/null; then
-                local plugin_dir=$(__mlnj_cde_get_plugin_dir)
-                local ssm_command="$plugin_dir/ssm/command.zsh"
+                local cde_dir=$(__mlnj_cde_get_dir)
+                local ssm_command="$cde_dir/ssm/command.zsh"
                 if [[ -f "$ssm_command" ]]; then
                     source "$ssm_command"
                 fi
@@ -245,8 +245,8 @@ _cde_start_new_tunnel() {
                 
                 # Load SSM command if not already loaded
                 if ! declare -f _cde_ssm >/dev/null; then
-                    local plugin_dir=$(__mlnj_cde_get_plugin_dir)
-                    local ssm_command="$plugin_dir/ssm/command.zsh"
+                    local cde_dir=$(__mlnj_cde_get_dir)
+                    local ssm_command="$cde_dir/ssm/command.zsh"
                     if [[ -f "$ssm_command" ]]; then
                         source "$ssm_command"
                     fi
@@ -380,8 +380,8 @@ _cde_find_bastion_instance() {
         
         # Load SSM command if not already loaded
         if ! declare -f _cde_ssm >/dev/null; then
-            local plugin_dir=$(__mlnj_cde_get_plugin_dir)
-            local ssm_command="$plugin_dir/ssm/command.zsh"
+            local cde_dir=$(__mlnj_cde_get_dir)
+            local ssm_command="$cde_dir/ssm/command.zsh"
             if [[ -f "$ssm_command" ]]; then
                 source "$ssm_command"
             else
