@@ -198,7 +198,7 @@ __mlnj_cde_cr_login_aws() {
 }
 
 # Main CR command function (public interface)
-_cde_cr() {
+__mlnj_cde_cr() {
     local subcommand="$1"
     
     if [[ -z "$subcommand" ]]; then

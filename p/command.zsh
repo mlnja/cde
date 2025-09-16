@@ -109,7 +109,7 @@ __mlnj_cde_profile_unified() {
 }
 
 # Profile management function (public interface)
-_cde_profile() {
+__mlnj_cde_profile() {
     # Always show unified selection
     __mlnj_cde_profile_unified
 }

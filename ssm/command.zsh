@@ -313,7 +313,7 @@ __mlnj_cde_ssm_show() {
 }
 
 # SSM management function (public interface)
-_cde_ssm() {
+__mlnj_cde_ssm() {
     local action="${1:-connect}"
     
     case "$action" in

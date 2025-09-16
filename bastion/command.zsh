@@ -2,17 +2,17 @@
 # Port forwarding through bastion hosts using AWS SSM
 
 # Main bastion tunnel command
-_cde_bastion() {
+__mlnj_cde_bastion() {
     local config_file="$HOME/.cde/config.yml"
     
     # Handle subcommands
     case "$1" in
         "clean")
-            _cde_clean_all_tunnels
+            __mlnj_cde_clean_all_tunnels
             return $?
             ;;
         "help"|"-h"|"--help")
-            _cde_bastion_help
+            __mlnj_cde_bastion_help
             return 0
             ;;
     esac
@@ -28,11 +28,11 @@ _cde_bastion() {
     local current_profile="${AWS_PROFILE:-default}"
     
     # Always show tunnel status table (it will handle the case when current profile has no targets)
-    _cde_show_tunnel_table "$current_profile" "$config_file"
+    __mlnj_cde_show_tunnel_table "$current_profile" "$config_file"
 }
 
 # Show tunnel status table with tmux session info
-_cde_show_tunnel_table() {
+__mlnj_cde_show_tunnel_table() {
     local current_profile="$1"
     local config_file="$2"
     
@@ -135,14 +135,14 @@ _cde_show_tunnel_table() {
     # Check if tunnel is already running
     local session_name="__mlnj_cde_tun_${chosen_profile}_${chosen_target}"
     if tmux has-session -t "$session_name" 2>/dev/null; then
-        _cde_manage_existing_tunnel "$chosen_target" "$session_name"
+        __mlnj_cde_manage_existing_tunnel "$chosen_target" "$session_name"
     else
-        _cde_start_new_tunnel "$chosen_target" "$chosen_profile" "$config_file"
+        __mlnj_cde_start_new_tunnel "$chosen_target" "$chosen_profile" "$config_file"
     fi
 }
 
 # Manage existing tunnel
-_cde_manage_existing_tunnel() {
+__mlnj_cde_manage_existing_tunnel() {
     local target_name="$1"
     local session_name="$2"
     
@@ -170,7 +170,7 @@ _cde_manage_existing_tunnel() {
 }
 
 # Start new tunnel in detached tmux session
-_cde_start_new_tunnel() {
+__mlnj_cde_start_new_tunnel() {
     local target_name="$1"
     local current_profile="$2"
     local config_file="$3"
@@ -195,13 +195,13 @@ _cde_start_new_tunnel() {
     gum style --foreground 86 "🔍 Looking for bastion instance..."
     
     # Find bastion instance
-    local bastion_instance=$(_cde_find_bastion_instance "$current_profile")
+    local bastion_instance=$(__mlnj_cde_find_bastion_instance "$current_profile")
     
     if [[ -z "$bastion_instance" ]]; then
         gum style --foreground 214 "⚠️  No bastion instance found, refreshing SSM instances..."
         
         # Load SSM command if not already loaded
-        if ! declare -f _cde_ssm >/dev/null; then
+        if ! declare -f __mlnj_cde_ssm >/dev/null; then
             local cde_dir=$(__mlnj_cde_get_dir)
             local ssm_command="$cde_dir/ssm/command.zsh"
             if [[ -f "$ssm_command" ]]; then
@@ -213,9 +213,9 @@ _cde_start_new_tunnel() {
         fi
         
         # Auto-refresh SSM instances once
-        if _cde_ssm refresh; then
+        if __mlnj_cde_ssm refresh; then
             # Try to find bastion again after refresh
-            bastion_instance=$(_cde_find_bastion_instance "$current_profile")
+            bastion_instance=$(__mlnj_cde_find_bastion_instance "$current_profile")
             
             if [[ -n "$bastion_instance" ]]; then
                 gum style --foreground 86 "✅ Found bastion after refresh: $bastion_instance"
@@ -271,7 +271,7 @@ _cde_start_new_tunnel() {
             gum style --foreground 214 "🔍 Checking if bastion instance is valid..."
             
             # Load SSM command if not already loaded
-            if ! declare -f _cde_ssm >/dev/null; then
+            if ! declare -f __mlnj_cde_ssm >/dev/null; then
                 local cde_dir=$(__mlnj_cde_get_dir)
                 local ssm_command="$cde_dir/ssm/command.zsh"
                 if [[ -f "$ssm_command" ]]; then
@@ -281,8 +281,8 @@ _cde_start_new_tunnel() {
             
             # Refresh SSM instances to get updated bastion list
             gum style --foreground 214 "🔄 Refreshing bastion instances..."
-            if _cde_ssm refresh; then
-                local new_bastion=$(_cde_find_bastion_instance "$current_profile")
+            if __mlnj_cde_ssm refresh; then
+                local new_bastion=$(__mlnj_cde_find_bastion_instance "$current_profile")
                 
                 if [[ -n "$new_bastion" && "$new_bastion" != "$bastion_instance" ]]; then
                     gum style --foreground 86 "✅ Found new bastion: $new_bastion"
@@ -324,7 +324,7 @@ _cde_start_new_tunnel() {
                 gum style --foreground 214 "🔄 Searching for updated bastion..."
                 
                 # Load SSM command if not already loaded
-                if ! declare -f _cde_ssm >/dev/null; then
+                if ! declare -f __mlnj_cde_ssm >/dev/null; then
                     local cde_dir=$(__mlnj_cde_get_dir)
                     local ssm_command="$cde_dir/ssm/command.zsh"
                     if [[ -f "$ssm_command" ]]; then
@@ -333,14 +333,14 @@ _cde_start_new_tunnel() {
                 fi
                 
                 # Refresh SSM instances (show errors to user)
-                if ! _cde_ssm refresh; then
+                if ! __mlnj_cde_ssm refresh; then
                     gum style --foreground 196 "❌ Failed to refresh SSM instances"
                     tmux kill-session -t "$session_name" 2>/dev/null
                     [[ -f "$log_file" ]] && rm "$log_file"
                     return 1
                 fi
                 
-                local new_bastion=$(_cde_find_bastion_instance "$current_profile")
+                local new_bastion=$(__mlnj_cde_find_bastion_instance "$current_profile")
                 
                 if [[ -n "$new_bastion" && "$new_bastion" != "$bastion_instance" ]]; then
                     gum style --foreground 86 "✅ Found new bastion: $new_bastion"
@@ -394,7 +394,7 @@ _cde_start_new_tunnel() {
 }
 
 # Clean all tunnel sessions across all profiles
-_cde_clean_all_tunnels() {
+__mlnj_cde_clean_all_tunnels() {
     gum style --foreground 214 "🔍 Searching for active tunnel sessions..."
     
     # Find all tmux sessions that match the tunnel naming pattern
@@ -447,7 +447,7 @@ _cde_clean_all_tunnels() {
 }
 
 # Find bastion instance with Bastion=true tag
-_cde_find_bastion_instance() {
+__mlnj__mlnj_cde_find_bastion_instance() {
     local profile="$1"
     local env_key="aws:${profile}"
     
@@ -459,7 +459,7 @@ _cde_find_bastion_instance() {
         gum style --foreground 214 "⚠️  No cached SSM instances found. Running 'cde.ssm refresh'..." >&2
         
         # Load SSM command if not already loaded
-        if ! declare -f _cde_ssm >/dev/null; then
+        if ! declare -f __mlnj_cde_ssm >/dev/null; then
             local cde_dir=$(__mlnj_cde_get_dir)
             local ssm_command="$cde_dir/ssm/command.zsh"
             if [[ -f "$ssm_command" ]]; then
@@ -471,7 +471,7 @@ _cde_find_bastion_instance() {
         fi
         
         # Run refresh
-        if ! _cde_ssm refresh >&2; then
+        if ! __mlnj_cde_ssm refresh >&2; then
             gum style --foreground 196 "❌ Failed to refresh SSM instances" >&2
             return 1
         fi
@@ -503,7 +503,7 @@ _cde_find_bastion_instance() {
 }
 
 # Help function for bastion command
-_cde_bastion_help() {
+__mlnj_cde_bastion_help() {
     gum style \
         --foreground 86 --border-foreground 86 --border double \
         --align center --width 60 --margin "1 2" --padding "2 4" \

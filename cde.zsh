@@ -82,12 +82,26 @@ __mlnj_cde_load_bastion_command() {
 __mlnj_cde_load_cr_command() {
     local cde_dir=$(__mlnj_cde_get_dir)
     local cr_command="$cde_dir/cr/command.zsh"
-    
+
     if [[ -f "$cr_command" ]]; then
         source "$cr_command"
         return 0
     else
         gum style --foreground 196 "❌ CR command not found"
+        return 1
+    fi
+}
+
+# Lazy load k8x command when needed
+__mlnj_cde_load_k8x_command() {
+    local cde_dir=$(__mlnj_cde_get_dir)
+    local k8x_command="$cde_dir/k8x/command.zsh"
+
+    if [[ -f "$k8x_command" ]]; then
+        source "$k8x_command"
+        return 0
+    else
+        gum style --foreground 196 "❌ K8X command not found"
         return 1
     fi
 }
@@ -106,17 +120,17 @@ cde() {
         "cache")
             shift
             # Lazy load cache command if not already loaded
-            if ! declare -f _cde_cache >/dev/null; then
+            if ! declare -f __mlnj_cde_cache >/dev/null; then
                 __mlnj_cde_load_cache_command || return 1
             fi
-            _cde_cache "$@"
+            __mlnj_cde_cache "$@"
             ;;
         "cache.clean")
             # Lazy load cache command if not already loaded
-            if ! declare -f _cde_cache_clean >/dev/null; then
+            if ! declare -f __mlnj_cde_cache_clean >/dev/null; then
                 __mlnj_cde_load_cache_command || return 1
             fi
-            _cde_cache_clean
+            __mlnj_cde_cache_clean
             ;;
         "update")
             __mlnj_cde_update
@@ -226,6 +240,7 @@ __mlnj_cde_help() {
     echo "  cde.ssm [refresh|show]   - Connect to cloud instances"
     echo "  cde.tun [clean]          - Connect via bastion tunnel"
     echo "  cde.cr login [region]    - Login to ECR Docker registry"
+    echo "  cde.k8x                  - Switch kubernetes contexts"
 }
 
 # Update function
@@ -275,35 +290,44 @@ __mlnj_cde_update() {
 # Lazy loading alias for cde.p
 cde.p() {
     # Lazy load p command if not already loaded
-    if ! declare -f _cde_profile >/dev/null; then
+    if ! declare -f __mlnj_cde_profile >/dev/null; then
         __mlnj_cde_load_p_command || return 1
     fi
-    _cde_profile "$@"
+    __mlnj_cde_profile "$@"
 }
 
 # Lazy loading alias for cde.ssm
 cde.ssm() {
     # Lazy load ssm command if not already loaded
-    if ! declare -f _cde_ssm >/dev/null; then
+    if ! declare -f __mlnj_cde_ssm >/dev/null; then
         __mlnj_cde_load_ssm_command || return 1
     fi
-    _cde_ssm "$@"
+    __mlnj_cde_ssm "$@"
 }
 
 # Lazy loading alias for cde.tun
 cde.tun() {
     # Lazy load bastion command if not already loaded
-    if ! declare -f _cde_bastion >/dev/null; then
+    if ! declare -f __mlnj_cde_bastion >/dev/null; then
         __mlnj_cde_load_bastion_command || return 1
     fi
-    _cde_bastion "$@"
+    __mlnj_cde_bastion "$@"
 }
 
 # Lazy loading alias for cde.cr
 cde.cr() {
     # Lazy load cr command if not already loaded
-    if ! declare -f _cde_cr >/dev/null; then
+    if ! declare -f __mlnj_cde_cr >/dev/null; then
         __mlnj_cde_load_cr_command || return 1
     fi
-    _cde_cr "$@"
+    __mlnj_cde_cr "$@"
+}
+
+# Lazy loading alias for cde.k8x
+cde.k8x() {
+    # Lazy load k8x command if not already loaded
+    if ! declare -f __mlnj_cde_k8x >/dev/null; then
+        __mlnj_cde_load_k8x_command || return 1
+    fi
+    __mlnj_cde_k8x "$@"
 }

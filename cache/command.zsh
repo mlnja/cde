@@ -2,7 +2,7 @@
 # Cache functionality using skate for persistent storage
 
 # Main cache command dispatcher
-_cde_cache() {
+__mlnj_cde_cache() {
     if [[ $# -eq 0 ]]; then
         # Get current environment key
         local env_key=""
@@ -54,7 +54,7 @@ _cde_cache() {
 }
 
 # Clean cache data for current environment
-_cde_cache_clean() {
+__mlnj_cde_cache_clean() {
     # Get current environment key
     local env_key=""
     if [[ -n "$AWS_PROFILE" ]]; then
