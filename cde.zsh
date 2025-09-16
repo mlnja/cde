@@ -258,9 +258,17 @@ __mlnj_cde_update() {
     fi
     
     gum style --foreground 86 "🔄 Updating CDE..."
-    
+
     cd "$cde_dir"
-    
+
+    # Clean any uncommitted changes and untracked files
+    gum style --foreground 214 "🧹 Cleaning local changes..."
+    git reset --hard HEAD 2>/dev/null
+    git clean -fd 2>/dev/null
+
+    # Fetch latest changes
+    git fetch origin main 2>/dev/null
+
     # Capture git pull output
     local git_output=$(git pull origin main 2>&1)
     local git_exit_code=$?
