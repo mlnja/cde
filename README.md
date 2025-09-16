@@ -100,6 +100,13 @@ cde.cr login us-west-2    # Login to specific region
 cde.cr                    # Get ECR URL for current profile
 ```
 
+### Kubernetes Context Management
+
+```bash
+cde.k8x                   # Interactive kubernetes context selector
+cde.k8x help              # Show k8x help message
+```
+
 ## Configuration
 
 CDE uses standard cloud CLI configurations:
