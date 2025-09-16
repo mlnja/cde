@@ -263,8 +263,8 @@ __mlnj_cde_update() {
 
     # Clean any uncommitted changes and untracked files
     gum style --foreground 214 "🧹 Cleaning local changes..."
-    git reset --hard HEAD 2>/dev/null
-    git clean -fd 2>/dev/null
+    git reset --hard HEAD >/dev/null 2>&1
+    git clean -fd >/dev/null 2>&1
 
     # Fetch latest changes
     git fetch origin main 2>/dev/null
