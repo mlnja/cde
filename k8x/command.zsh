@@ -24,12 +24,12 @@ __mlnj_cde_k8x_list_contexts() {
     # Get current context
     local current_context=$(yq eval '.current-context' "$kubeconfig" 2>/dev/null)
 
-    # List all contexts with simple icons
+    # List all contexts with fancy icons
     yq eval '.contexts[] | .name' "$kubeconfig" 2>/dev/null | while IFS= read -r context; do
         if [[ "$context" == "$current_context" ]]; then
-            echo "✓ $context"
+            echo "⭐ $context"
         else
-            echo "* $context"
+            echo "☸️  $context"
         fi
     done
 }
@@ -97,8 +97,8 @@ __mlnj_cde_k8x_unified() {
     local selected=$(echo "$contexts" | gum filter --placeholder="Type to filter contexts..." --height=15)
 
     if [[ -n "$selected" ]]; then
-        # Parse selection (format: "✓ context" or "* context")
-        local context=$(echo "$selected" | sed 's/^[✓*] //')
+        # Parse selection (format: "⭐ context" or "☸️  context")
+        local context=$(echo "$selected" | sed 's/^[⭐☸️][[:space:]]*//')
         __mlnj_cde_k8x_set_context "$context"
     else
         # No context selected (includes Ctrl+C)
