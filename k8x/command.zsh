@@ -98,7 +98,7 @@ __mlnj_cde_k8x_unified() {
 
     if [[ -n "$selected" ]]; then
         # Parse selection (format: "icon k8s:context")
-        local context=$(echo "$selected" | sed 's/^[^ ]* k8s:\(.*\)/\1/')
+        local context=$(echo "$selected" | sed 's/^[^:]*k8s:\(.*\)/\1/')
         __mlnj_cde_k8x_set_context "$context"
     else
         # No context selected (includes Ctrl+C)
