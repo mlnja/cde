@@ -447,7 +447,7 @@ __mlnj_cde_clean_all_tunnels() {
 }
 
 # Find bastion instance with Bastion=true tag
-__mlnj__mlnj_cde_find_bastion_instance() {
+__mlnj_cde_find_bastion_instance() {
     local profile="$1"
     local env_key="aws:${profile}"
     
