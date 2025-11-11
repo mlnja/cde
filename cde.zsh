@@ -106,6 +106,20 @@ __mlnj_cde_load_k8x_command() {
     fi
 }
 
+# Lazy load bw command when needed
+__mlnj_cde_load_bw_command() {
+    local cde_dir=$(__mlnj_cde_get_dir)
+    local bw_command="$cde_dir/bw/command.zsh"
+
+    if [[ -f "$bw_command" ]]; then
+        source "$bw_command"
+        return 0
+    else
+        gum style --foreground 196 "❌ BW command not found"
+        return 1
+    fi
+}
+
 # Main CDE function
 cde() {
     if [[ $# -eq 0 ]]; then
@@ -241,6 +255,8 @@ __mlnj_cde_help() {
     echo "  cde.tun [clean]          - Connect via bastion tunnel"
     echo "  cde.cr login [region]    - Login to ECR Docker registry"
     echo "  cde.k8x                  - Switch kubernetes contexts"
+    echo "  cde.bw <command>         - Bitwarden CLI with encrypted password"
+    echo "  cde.bw.reset             - Clear stored Bitwarden password"
 }
 
 # Update function
@@ -338,4 +354,22 @@ cde.k8x() {
         __mlnj_cde_load_k8x_command || return 1
     fi
     __mlnj_cde_k8x "$@"
+}
+
+# Lazy loading alias for cde.bw
+cde.bw() {
+    # Lazy load bw command if not already loaded
+    if ! declare -f __mlnj_cde_bw >/dev/null; then
+        __mlnj_cde_load_bw_command || return 1
+    fi
+    __mlnj_cde_bw "$@"
+}
+
+# Alias for cde.bw.reset
+cde.bw.reset() {
+    # Lazy load bw command if not already loaded
+    if ! declare -f __mlnj_cde_bw_reset >/dev/null; then
+        __mlnj_cde_load_bw_command || return 1
+    fi
+    __mlnj_cde_bw_reset
 }
