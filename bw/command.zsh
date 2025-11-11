@@ -179,6 +179,36 @@ __mlnj_cde_bw_reset() {
     fi
 }
 
+# Get or generate session key
+__mlnj_cde_bw_get_session() {
+    # Get/prompt for password
+    local master_password=$(__mlnj_cde_bw_get_password)
+    if [[ $? -ne 0 ]]; then
+        return 1
+    fi
+
+    # Unlock vault to get session key
+    local unlock_output=$(BW_PASSWORD="$master_password" bw unlock --passwordenv BW_PASSWORD 2>&1)
+    local unlock_status=$?
+
+    if [[ $unlock_status -ne 0 ]]; then
+        gum style --foreground 196 "❌ Failed to unlock vault"
+        echo "$unlock_output" >&2
+        return 1
+    fi
+
+    # Extract session key from output (looks like: export BW_SESSION="key")
+    local session_key=$(echo "$unlock_output" | grep 'export BW_SESSION=' | sed 's/.*export BW_SESSION="\(.*\)".*/\1/')
+
+    if [[ -z "$session_key" ]]; then
+        gum style --foreground 196 "❌ Failed to extract session key"
+        echo "$unlock_output" >&2
+        return 1
+    fi
+
+    echo "$session_key"
+}
+
 # Proxy command to bw with auto-decrypted password
 __mlnj_cde_bw_proxy() {
     # Check if bw is installed
@@ -209,14 +239,14 @@ __mlnj_cde_bw_proxy() {
         return 1
     fi
 
-    # For all other commands, get/prompt for password
-    local master_password=$(__mlnj_cde_bw_get_password)
+    # Get session key by unlocking vault
+    local session_key=$(__mlnj_cde_bw_get_session)
     if [[ $? -ne 0 ]]; then
         return 1
     fi
 
-    # Run bw command with BW_PASSWORD set
-    BW_PASSWORD="$master_password" bw "$@"
+    # Run bw command with BW_SESSION set
+    BW_SESSION="$session_key" bw "$@"
 }
 
 # Main BW command function (public interface)
