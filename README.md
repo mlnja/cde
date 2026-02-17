@@ -52,11 +52,13 @@ source ~/.zshenv
 - **Git** - For installation and updates
 - **Go** - For installing gum, skate, and yq dependencies
 - **jq** - For JSON processing
+- **tmux** - For tunnel management and bastion operations
 - **Zsh or Bash** - Shell support
 
 ### Cloud CLI Tools (as needed)
 - **AWS CLI** - For AWS operations
-- **gcloud** - For GCP operations  
+- **session-manager-plugin** - Required for AWS instance connections and SSM operations
+- **gcloud** - For GCP operations
 - **Azure CLI** - For Azure operations
 
 ## Usage
