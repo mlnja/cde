@@ -14,8 +14,8 @@ cde.tun --profile <profile>          # Interactive mode with specific AWS profil
 
 ### Non-Interactive Mode (for automation/scripts)
 ```bash
-cde.tun <target>                     # Start tunnel with current AWS_PROFILE
-cde.tun <target> --profile <profile> # Start tunnel with specific AWS profile
+cde.tun --name <target>                        # Start tunnel with current AWS_PROFILE
+cde.tun --name <target> --profile <profile>    # Start tunnel with specific AWS profile
 ```
 
 ### Other Commands
@@ -77,7 +77,7 @@ bastion_targets:
 - Connection details displayed
 
 **Non-Interactive Mode (for scripts/automation):**
-- Run `cde.tun <target> --profile <profile>` to start tunnel directly
+- Run `cde.tun --name <target> --profile <profile>` to start tunnel directly
 - Checks if tunnel is already running (exits with warning if so)
 - Verifies target exists in config for the specified profile
 - Starts tunnel automatically without user interaction
@@ -133,7 +133,7 @@ bastion_targets:
 ```bash
 #!/bin/bash
 # Start tunnel in non-interactive mode
-cde.tun postgres --profile prod-rootio
+cde.tun --name postgres --profile prod-rootio
 
 # Wait for tunnel to establish
 sleep 3
@@ -152,7 +152,7 @@ import subprocess
 def ensure_tunnel(target: str, profile: str):
     """Start tunnel if not already running."""
     result = subprocess.run(
-        ["cde.tun", target, "--profile", profile],
+        ["cde.tun", "--name", target, "--profile", profile],
         capture_output=True,
         text=True
     )

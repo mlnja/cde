@@ -88,9 +88,9 @@ cde.ssm show              # Show cached instances
 ### Bastion Tunneling
 
 ```bash
-cde.tun                              # Interactive tunnel management
-cde.tun <target> --profile <profile> # Start tunnel non-interactively (for automation)
-cde.tun clean                        # Clean all tunnels
+cde.tun                                      # Interactive tunnel management
+cde.tun --name <target> --profile <profile>  # Start tunnel non-interactively (for automation)
+cde.tun clean                                # Clean all tunnels
 ```
 
 ### Container Registry

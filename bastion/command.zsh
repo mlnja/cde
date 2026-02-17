@@ -27,16 +27,19 @@ __mlnj_cde_bastion() {
                     return 1
                 fi
                 ;;
-            *)
-                # Treat as target name if it's not a flag
-                if [[ "$1" != --* ]]; then
-                    target_name="$1"
-                    shift
+            "--name")
+                if [[ -n "$2" && "$2" != --* ]]; then
+                    target_name="$2"
+                    shift 2
                 else
-                    gum style --foreground 196 "❌ Unknown option: $1"
-                    __mlnj_cde_bastion_help
+                    gum style --foreground 196 "❌ --name requires an argument"
                     return 1
                 fi
+                ;;
+            *)
+                gum style --foreground 196 "❌ Unknown option: $1"
+                __mlnj_cde_bastion_help
+                return 1
                 ;;
         esac
     done
@@ -568,14 +571,15 @@ __mlnj_cde_bastion_help() {
 
     echo ""
     echo "Usage:"
-    echo "  cde.tun                              - Interactive tunnel management"
-    echo "  cde.tun <target> --profile <profile> - Start tunnel non-interactively"
-    echo "  cde.tun --profile <profile>          - Interactive mode with specific profile"
-    echo "  cde.tun <target>                     - Start tunnel with current AWS profile"
-    echo "  cde.tun clean                        - Stop all active tunnel sessions"
-    echo "  cde.tun help                         - Show this help"
+    echo "  cde.tun                                        - Interactive tunnel management"
+    echo "  cde.tun --name <target> --profile <profile>   - Start tunnel non-interactively"
+    echo "  cde.tun --profile <profile>                    - Interactive mode with specific profile"
+    echo "  cde.tun --name <target>                        - Start tunnel with current AWS profile"
+    echo "  cde.tun clean                                  - Stop all active tunnel sessions"
+    echo "  cde.tun help                                   - Show this help"
     echo ""
     echo "Options:"
+    echo "  --name <target>          Target name from config (e.g., rds, redis, k8s)"
     echo "  --profile <name>         Use specific AWS profile instead of current"
     echo ""
     echo "Features:"
@@ -587,9 +591,9 @@ __mlnj_cde_bastion_help() {
     echo "  • Auto-discovery of bastion instances"
     echo ""
     echo "Examples:"
-    echo "  cde.tun database --profile production    # Start 'database' tunnel with 'production' profile"
-    echo "  cde.tun redis --profile staging          # Start 'redis' tunnel with 'staging' profile"
-    echo "  cde.tun --profile dev                    # Interactive selection with 'dev' profile"
+    echo "  cde.tun --name rds --profile prod-rootio     # Start 'rds' tunnel with 'prod-rootio' profile"
+    echo "  cde.tun --name redis --profile staging       # Start 'redis' tunnel with 'staging' profile"
+    echo "  cde.tun --profile dev                        # Interactive selection with 'dev' profile"
     echo ""
     echo "Configuration: ~/.cde/config.yml"
     echo "Documentation: See docs/bastion.md"
