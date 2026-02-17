@@ -4,31 +4,88 @@
 # Main bastion tunnel command
 __mlnj_cde_bastion() {
     local config_file="$HOME/.cde/config.yml"
-    
-    # Handle subcommands
-    case "$1" in
-        "clean")
-            __mlnj_cde_clean_all_tunnels
-            return $?
-            ;;
-        "help"|"-h"|"--help")
-            __mlnj_cde_bastion_help
-            return 0
-            ;;
-    esac
-    
+    local target_name=""
+    local profile_override=""
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            "clean")
+                __mlnj_cde_clean_all_tunnels
+                return $?
+                ;;
+            "help"|"-h"|"--help")
+                __mlnj_cde_bastion_help
+                return 0
+                ;;
+            "--profile")
+                if [[ -n "$2" && "$2" != --* ]]; then
+                    profile_override="$2"
+                    shift 2
+                else
+                    gum style --foreground 196 "❌ --profile requires an argument"
+                    return 1
+                fi
+                ;;
+            *)
+                # Treat as target name if it's not a flag
+                if [[ "$1" != --* ]]; then
+                    target_name="$1"
+                    shift
+                else
+                    gum style --foreground 196 "❌ Unknown option: $1"
+                    __mlnj_cde_bastion_help
+                    return 1
+                fi
+                ;;
+        esac
+    done
+
     # Check if config file exists
     if [[ ! -f "$config_file" ]]; then
         gum style --foreground 196 "❌ Config file not found: $config_file"
         echo "Create it with bastion_targets configuration"
         return 1
     fi
-    
-    # Get current AWS profile
-    local current_profile="${AWS_PROFILE:-default}"
-    
-    # Always show tunnel status table (it will handle the case when current profile has no targets)
-    __mlnj_cde_show_tunnel_table "$current_profile" "$config_file"
+
+    # Determine which profile to use
+    local current_profile="${profile_override:-${AWS_PROFILE:-default}}"
+
+    # Non-interactive mode: if target name is provided, start tunnel directly
+    if [[ -n "$target_name" ]]; then
+        __mlnj_cde_start_tunnel_noninteractive "$target_name" "$current_profile" "$config_file"
+    else
+        # Interactive mode: show tunnel status table
+        __mlnj_cde_show_tunnel_table "$current_profile" "$config_file"
+    fi
+}
+
+# Start tunnel non-interactively (for scripting)
+__mlnj_cde_start_tunnel_noninteractive() {
+    local target_name="$1"
+    local current_profile="$2"
+    local config_file="$3"
+
+    # Check if tunnel is already running
+    local session_name="__mlnj_cde_tun_${current_profile}_${target_name}"
+    if tmux has-session -t "$session_name" 2>/dev/null; then
+        gum style --foreground 214 "⚠️  Tunnel '$target_name' is already running for profile '$current_profile'"
+        gum style --foreground 214 "💡 Use 'cde.tun' interactively to manage or kill the tunnel"
+        return 0
+    fi
+
+    # Verify target exists in config
+    local target_exists=$(yq eval ".bastion_targets[] | select(.profile == \"$current_profile\" and .name == \"$target_name\") | .name" "$config_file" 2>/dev/null)
+
+    if [[ -z "$target_exists" ]]; then
+        gum style --foreground 196 "❌ Target '$target_name' not found for profile '$current_profile'"
+        echo "Available targets for this profile:"
+        yq eval ".bastion_targets[] | select(.profile == \"$current_profile\") | .name + \" -> \" + .host + \":\" + .port" "$config_file" 2>/dev/null
+        return 1
+    fi
+
+    # Start the tunnel
+    __mlnj_cde_start_new_tunnel "$target_name" "$current_profile" "$config_file"
 }
 
 # Show tunnel status table with tmux session info
@@ -511,16 +568,28 @@ __mlnj_cde_bastion_help() {
 
     echo ""
     echo "Usage:"
-    echo "  cde.tun                  - Interactive tunnel management"
-    echo "  cde.tun clean            - Stop all active tunnel sessions"
-    echo "  cde.tun help             - Show this help"
+    echo "  cde.tun                              - Interactive tunnel management"
+    echo "  cde.tun <target> --profile <profile> - Start tunnel non-interactively"
+    echo "  cde.tun --profile <profile>          - Interactive mode with specific profile"
+    echo "  cde.tun <target>                     - Start tunnel with current AWS profile"
+    echo "  cde.tun clean                        - Stop all active tunnel sessions"
+    echo "  cde.tun help                         - Show this help"
+    echo ""
+    echo "Options:"
+    echo "  --profile <name>         Use specific AWS profile instead of current"
     echo ""
     echo "Features:"
+    echo "  • Non-interactive mode for automation and scripts"
     echo "  • Select from configured bastion targets"
     echo "  • Real-time tunnel status display"
     echo "  • Background tmux sessions for persistence"
     echo "  • View logs and manage connections"
     echo "  • Auto-discovery of bastion instances"
+    echo ""
+    echo "Examples:"
+    echo "  cde.tun database --profile production    # Start 'database' tunnel with 'production' profile"
+    echo "  cde.tun redis --profile staging          # Start 'redis' tunnel with 'staging' profile"
+    echo "  cde.tun --profile dev                    # Interactive selection with 'dev' profile"
     echo ""
     echo "Configuration: ~/.cde/config.yml"
     echo "Documentation: See docs/bastion.md"

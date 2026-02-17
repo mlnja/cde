@@ -6,14 +6,30 @@ The bastion command (`cde.tun`) provides secure port forwarding through bastion 
 
 ## Usage
 
+### Interactive Mode
 ```bash
-cde.tun
+cde.tun                              # Interactive tunnel management (uses current AWS_PROFILE)
+cde.tun --profile <profile>          # Interactive mode with specific AWS profile
+```
+
+### Non-Interactive Mode (for automation/scripts)
+```bash
+cde.tun <target>                     # Start tunnel with current AWS_PROFILE
+cde.tun <target> --profile <profile> # Start tunnel with specific AWS profile
+```
+
+### Other Commands
+```bash
+cde.tun clean                        # Stop all active tunnel sessions
+cde.tun help                         # Show help message
 ```
 
 ## Features
 
 - **Interactive Selection**: Choose from configured bastion targets with fuzzy filtering
-- **Tunnel Status**: Real-time status showing running/stopped tunnels  
+- **Non-Interactive Mode**: Start tunnels directly by target name for automation
+- **Profile Override**: Use `--profile` flag to override current AWS profile
+- **Tunnel Status**: Real-time status showing running/stopped tunnels
 - **Detached Sessions**: Tunnels run in background tmux sessions
 - **Log Management**: View tunnel logs and manage connections
 - **Auto-discovery**: Automatically finds bastion instances tagged with `Bastion=true`
@@ -53,9 +69,19 @@ bastion_targets:
 ## Tunnel Management
 
 ### Starting a Tunnel
-- Select target from interactive list
+
+**Interactive Mode:**
+- Run `cde.tun` to see all configured targets for current profile
+- Select target from interactive list with fuzzy filtering
 - Tunnel starts in detached tmux session
 - Connection details displayed
+
+**Non-Interactive Mode (for scripts/automation):**
+- Run `cde.tun <target> --profile <profile>` to start tunnel directly
+- Checks if tunnel is already running (exits with warning if so)
+- Verifies target exists in config for the specified profile
+- Starts tunnel automatically without user interaction
+- Ideal for use in Python scripts, Makefiles, or CI/CD pipelines
 
 ### Managing Active Tunnels
 - **View Logs**: Monitor tunnel connection logs
@@ -101,6 +127,41 @@ bastion_targets:
     name: "api"
     host: "internal-api.dev"
     port: "8080:8080"
+```
+
+### Automation/Scripting Example
+```bash
+#!/bin/bash
+# Start tunnel in non-interactive mode
+cde.tun postgres --profile prod-rootio
+
+# Wait for tunnel to establish
+sleep 3
+
+# Use the tunnel
+psql -h localhost -p 5432 -U user -d database
+
+# Note: Tunnel remains running in background tmux session
+# Use 'cde.tun clean' or 'cde.tun' (interactive) to stop it
+```
+
+```python
+# Python script example (from data copy system)
+import subprocess
+
+def ensure_tunnel(target: str, profile: str):
+    """Start tunnel if not already running."""
+    result = subprocess.run(
+        ["cde.tun", target, "--profile", profile],
+        capture_output=True,
+        text=True
+    )
+    if "already running" in result.stdout:
+        print(f"Tunnel {target} already active")
+    elif result.returncode == 0:
+        print(f"Tunnel {target} started successfully")
+    else:
+        raise RuntimeError(f"Failed to start tunnel: {result.stderr}")
 ```
 
 ## Requirements
