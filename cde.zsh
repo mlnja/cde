@@ -205,6 +205,16 @@ __mlnj_cde_doctor() {
     # Check AWS CLI
     if command -v aws >/dev/null 2>&1; then
         echo "✅ aws: $(aws --version | head -n1)"
+
+        # Check session-manager-plugin if AWS is installed
+        if command -v session-manager-plugin >/dev/null 2>&1; then
+            echo "✅ session-manager-plugin: installed"
+        else
+            echo "❌ session-manager-plugin: not found"
+            echo "   Required for AWS instance connections via SSM"
+            echo "   Install with: https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html"
+            all_good=false
+        fi
     else
         echo "⚠️  aws: not found (optional for AWS features)"
         echo "   Install with: https://aws.amazon.com/cli/"
