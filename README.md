@@ -52,11 +52,13 @@ source ~/.zshenv
 - **Git** - For installation and updates
 - **Go** - For installing gum, skate, and yq dependencies
 - **jq** - For JSON processing
+- **tmux** - For tunnel management and bastion operations
 - **Zsh or Bash** - Shell support
 
 ### Cloud CLI Tools (as needed)
 - **AWS CLI** - For AWS operations
-- **gcloud** - For GCP operations  
+- **session-manager-plugin** - Required for AWS instance connections and SSM operations
+- **gcloud** - For GCP operations
 - **Azure CLI** - For Azure operations
 
 ## Usage
@@ -111,8 +113,43 @@ cde.k8x help              # Show k8x help message
 
 CDE uses standard cloud CLI configurations:
 - AWS: `~/.aws/config` and `~/.aws/credentials`
-- GCP: `gcloud config` 
+- GCP: `gcloud config`
 - Azure: `az account`
+
+### CDE Config File
+
+Create `~/.cde/config.yml` to configure CDE features:
+
+```yaml
+# Bitwarden PGP key for encrypted password storage
+pgp_key_id: "YOUR_GPG_KEY_ID"
+
+# Bastion tunnel targets for secure port forwarding
+bastion_targets:
+  - profile: "production"
+    name: "database"
+    host: "prod-db.internal"
+    port: "5432:5432"
+  - profile: "staging"
+    name: "redis"
+    host: "stage-redis.internal"
+    port: "6379:6380"
+```
+
+#### Configuration Schema
+
+**`pgp_key_id`** (optional)
+- Your GPG key ID for Bitwarden password encryption
+- Used by `cde.bw` command for secure password storage
+- Format: GPG key ID (e.g., `A1B2C3D4`)
+
+**`bastion_targets`** (optional)
+- List of bastion tunnel target definitions
+- Each target requires:
+  - `profile`: AWS profile name
+  - `name`: Display name for the tunnel
+  - `host`: Target hostname (accessible from bastion)
+  - `port`: Port mapping as `remote_port:local_port`
 
 ## Caching
 
