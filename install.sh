@@ -64,10 +64,16 @@ for cmd in cde.p cde.tun cde.ssm cde.cr cde.k8x cde.bw; do
     ln -sf "$CDE_DIR/bin/$cmd" "$BIN_DIR/$cmd"
 done
 
-# Warn if ~/.local/bin is not in PATH
+# Add ~/.local/bin to PATH in ~/.zshenv if not already present
+ZSHENV="$HOME/.zshenv"
+PATH_EXPORT="export PATH=\"\$PATH:$BIN_DIR\""
 if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
-    echo "⚠️  Make sure $BIN_DIR is in your PATH"
-    echo "   Add this to your ~/.zshenv: export PATH=\$PATH:$BIN_DIR"
+    if ! grep -qF "$BIN_DIR" "$ZSHENV" 2>/dev/null; then
+        echo "" >> "$ZSHENV"
+        echo "# Added by CDE installer" >> "$ZSHENV"
+        echo "$PATH_EXPORT" >> "$ZSHENV"
+        echo "📌 Added $BIN_DIR to PATH in $ZSHENV"
+    fi
 fi
 
 echo "✅ CDE installed!"
