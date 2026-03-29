@@ -56,9 +56,26 @@ if [[ ":$PATH:" != *":$HOME/go/bin:"* ]]; then
     echo "   Add this to your ~/.zshenv: export PATH=\$PATH:\$HOME/go/bin"
 fi
 
+# Install global command wrappers to ~/.local/bin
+BIN_DIR="$HOME/.local/bin"
+mkdir -p "$BIN_DIR"
+echo "🔗 Installing global commands to $BIN_DIR..."
+for cmd in cde.p cde.tun cde.ssm cde.cr cde.k8x cde.bw; do
+    ln -sf "$CDE_DIR/bin/$cmd" "$BIN_DIR/$cmd"
+done
+
+# Warn if ~/.local/bin is not in PATH
+if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
+    echo "⚠️  Make sure $BIN_DIR is in your PATH"
+    echo "   Add this to your ~/.zshenv: export PATH=\$PATH:$BIN_DIR"
+fi
+
 echo "✅ CDE installed!"
 echo ""
-echo "📝 To activate, add this line to your ~/.zshenv:"
+echo "📝 To activate the shell plugin, add this line to your ~/.zshenv:"
 echo "   source ~/.local/share/cde/cde.zsh"
 echo ""
-echo "🔄 Then reload your shell: source ~/.zshenv"
+echo "🌍 Global commands are ready (no shell plugin needed):"
+echo "   cde.p  cde.tun  cde.ssm  cde.cr  cde.k8x  cde.bw"
+echo ""
+echo "🔄 Reload your shell: source ~/.zshenv"
