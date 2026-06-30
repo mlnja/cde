@@ -81,7 +81,7 @@ __mlnj_cde_s3view() {
         -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-}" \
         -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-}" \
         -e AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN:-}" \
-        "rclone mount '${rclone_path}' '${mount_dir}' --read-only --vfs-cache-mode reads 2>&1"
+        "rclone mount '${rclone_path}' '${mount_dir}' --read-only --vfs-cache-mode reads --s3-env-auth 2>&1"
     tmux set-hook -t "$session_name" client-attached 'detach-client'
 
     # Wait for the FUSE mount to appear (up to 15 s)
@@ -90,7 +90,7 @@ __mlnj_cde_s3view() {
     for i in {1..15}; do
         sleep 1
         if ! tmux has-session -t "$session_name" 2>/dev/null; then
-            gum style --foreground 196 "❌ rclone exited early — check your rclone config and AWS credentials"
+            gum style --foreground 196 "❌ rclone exited early — check AWS credentials for profile: ${AWS_PROFILE:-default}"
             rmdir "$mount_dir" 2>/dev/null
             return 1
         fi
