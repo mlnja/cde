@@ -84,11 +84,18 @@ __mlnj_cde_s3view() {
 
     # Open editor — blocks until closed
     gum style --foreground 86 "🖊  Opening $editor (close it to clean up)..."
-    if [[ "$editor" == "vim" ]]; then
-        "$editor" "$local_dir"
-    else
-        "$editor" --wait "$local_dir" 2>/dev/null
-    fi
+    case "$editor" in
+        vim)
+            "$editor" "$local_dir"
+            ;;
+        code)
+            # --new-window forces a dedicated window; --wait blocks until that window closes
+            "$editor" --new-window --wait "$local_dir"
+            ;;
+        zed)
+            "$editor" --wait "$local_dir"
+            ;;
+    esac
 
     # Editor closed — delete local copy
     gum style --foreground 214 "🗑  Cleaning up $local_dir..."
