@@ -211,7 +211,7 @@ __mlnj_cde_doctor() {
     if command -v rclone >/dev/null 2>&1; then
         echo "✅ rclone: $(rclone --version | head -n1)"
     else
-        echo "⚠️  rclone: not found (required for cde.s3view)"
+        echo "⚠️  rclone: not found (required for cde.s3view — brew install rclone)"
         echo "   Install with: brew install rclone"
     fi
 
