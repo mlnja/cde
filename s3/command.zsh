@@ -73,9 +73,14 @@ __mlnj_cde_s3view() {
 
     gum style --foreground 86 "📦 Mounting $s3_path"
     gum style --foreground 214 "📁 $mount_dir"
+    gum style --foreground 214 "👤 Profile: ${AWS_PROFILE:-default}"
 
-    # Start rclone in a detached tmux session
+    # Start rclone in a detached tmux session, forwarding the AWS profile
     tmux new-session -d -s "$session_name" \
+        -e AWS_PROFILE="$AWS_PROFILE" \
+        -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-}" \
+        -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-}" \
+        -e AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN:-}" \
         "rclone mount '${rclone_path}' '${mount_dir}' --read-only --vfs-cache-mode reads 2>&1"
     tmux set-hook -t "$session_name" client-attached 'detach-client'
 
