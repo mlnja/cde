@@ -106,6 +106,20 @@ __mlnj_cde_load_k8x_command() {
     fi
 }
 
+# Lazy load s3view command when needed
+__mlnj_cde_load_s3view_command() {
+    local cde_dir=$(__mlnj_cde_get_dir)
+    local s3view_command="$cde_dir/s3/command.zsh"
+
+    if [[ -f "$s3view_command" ]]; then
+        source "$s3view_command"
+        return 0
+    else
+        gum style --foreground 196 "❌ S3 view command not found"
+        return 1
+    fi
+}
+
 # Lazy load bw command when needed
 __mlnj_cde_load_bw_command() {
     local cde_dir=$(__mlnj_cde_get_dir)
@@ -193,6 +207,14 @@ __mlnj_cde_doctor() {
         all_good=false
     fi
     
+    # Check rclone
+    if command -v rclone >/dev/null 2>&1; then
+        echo "✅ rclone: $(rclone --version | head -n1)"
+    else
+        echo "⚠️  rclone: not found (required for cde.s3view)"
+        echo "   Install with: brew install rclone"
+    fi
+
     # Check tmux
     if command -v tmux >/dev/null 2>&1; then
         echo "✅ tmux: $(tmux -V)"
@@ -267,6 +289,7 @@ __mlnj_cde_help() {
     echo "  cde.k8x                  - Switch kubernetes contexts"
     echo "  cde.bw <command>         - Bitwarden CLI with encrypted password"
     echo "  cde.bw.reset             - Clear stored Bitwarden password"
+    echo "  cde.s3view s3://…        - Mount S3 path and open in editor"
 }
 
 # Update function
@@ -373,6 +396,14 @@ cde.bw() {
         __mlnj_cde_load_bw_command || return 1
     fi
     __mlnj_cde_bw "$@"
+}
+
+# Lazy loading alias for cde.s3view
+cde.s3view() {
+    if ! declare -f __mlnj_cde_s3view >/dev/null; then
+        __mlnj_cde_load_s3view_command || return 1
+    fi
+    __mlnj_cde_s3view "$@"
 }
 
 # Alias for cde.bw.reset
